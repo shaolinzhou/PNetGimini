@@ -45,6 +45,7 @@ config_local.yaml
 
 # Generated files
 *.docx
+*.pkt
 
 # Project specific files (excluded from sync)
 Deepseek*.txt
