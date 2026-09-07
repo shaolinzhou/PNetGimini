@@ -4,13 +4,13 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 
-**Provisioning Network Gemini System** — A physics-aware network automation deployment system.
+**Provisioning Network Gemini System** — A network automation deployment system inspired by CAE methodology.
 
 ## Overview
 
 PNetGimini is a network automation tool that borrows from CAE (Computer-Aided Engineering) methodology for segmenting complex simulation tasks. It deploys configurations to multi-vendor network devices (Cisco/Huawei) via SSH/Telnet, with automatic backup, rollback, and structured reporting.
 
-Inspired by finite element analysis (FEA) domain decomposition methods, the system treats network configuration as a multi-physics problem — separating basic data (IP/VLAN), routing convergence (OSPF/BGP), and post-processing (security/QoS) into distinct execution blocks with appropriate timing.
+Inspired by finite element analysis (FEA) domain decomposition methods, the system **lays the foundation to** treat network configuration as a multi-physics problem — separating basic data (IP/VLAN), routing convergence (OSPF/BGP), and post-processing (security/QoS) into distinct execution blocks with appropriate timing. A fully physics-aware engine with ODE-based prediction is planned for our next major release (**Sentinel CPNA**).
 
 ## Features
 
@@ -23,7 +23,28 @@ Inspired by finite element analysis (FEA) domain decomposition methods, the syst
 - **Project-level Isolation** — Configs, logs, outputs scoped to project directory
 - **Real-time Terminal Output** — Live command execution feedback
 - **Logging System** — RotatingFileHandler for automatic log management
-- **Network Topology Support** — Cisco Packet Tracer integration for EVE-NG/PNETLab
+- **Network Topology Support** — Cisco Packet Tracer topology for lab simulation
+
+### Deployment Flow
+
+```mermaid
+flowchart TD
+    A[main.py] --> B[ConfigParser: Parse devices.yaml]
+    B --> C{ThreadPoolExecutor}
+    C --> D1[DeviceManager: Device 1]
+    C --> D2[DeviceManager: Device 2]
+    C --> Dn[DeviceManager: Device N]
+    D1 --> E1[Connect via SSH/Telnet]
+    D1 --> E2[Backup running-config]
+    E2 --> E3[Deploy commands]
+    E3 --> E4{Success?}
+    E4 -->|Yes| E5[Log SUCCESS]
+    E4 -->|No| E6[Rollback to backup]
+    E5 --> F[ResultHandler]
+    E6 --> F
+    F --> G1[summary_report.json]
+    F --> G2[deployment_report.txt]
+```
 
 ## Architecture
 
@@ -40,9 +61,9 @@ PNetGimini/
 │   │   └── result_handler.py   # JSON/TXT report generation
 │   └── utils/
 │       └── logger.py           # RotatingFileHandler logging
-├── configs/                    # Device configurations
+├── configs/
 │   ├── devices.yaml            # Main device configuration file
-│   └── devices_enetlab.pkt     # Cisco Packet Tracer topology for EVE-NG
+│   └── devices_enetlab.pkt     # Cisco Packet Tracer lab topology
 ├── logs/                       # System runtime logs (auto-generated)
 ├── outputs/                    # Deployment reports and snapshots
 │   ├── deployment_report_*.txt # Human-readable deployment reports
@@ -56,8 +77,8 @@ PNetGimini/
 ### Prerequisites
 
 - Python 3.8+
-- EVE-NG/PNETLab or physical Cisco/Huawei devices
-- Cisco Packet Tracer (for topology import)
+- Network devices (physical or simulated via EVE-NG/PNETLab)
+- Cisco Packet Tracer (optional, for viewing the lab topology)
 
 ### Setup
 
@@ -77,17 +98,11 @@ pip install -r requirements.txt
 
 ## Usage
 
-### 1. Import Network Topology
+### 1. Prepare Network Topology
 
-1. **Import into EVE-NG**:
-   - Open EVE-NG web interface
-   - Create a new lab
-   - Import the `configs/devices_enetlab.pkt` topology
-   - Start all devices
+The repository includes a **Cisco Packet Tracer** topology file (`configs/devices_enetlab.pkt`) that defines the lab network.
 
-2. **Verify Topology**:
-   - Ensure all devices are running
-   - Note the management IP addresses and console ports
+> **Note**: `.pkt` files are native to Cisco Packet Tracer and cannot be directly imported into EVE-NG/PNETLab. If you are using EVE-NG, you will need to recreate the topology using EVE-NG's `.unl` format or import devices manually.
 
 ### 2. Configure Devices
 
@@ -95,7 +110,7 @@ Edit `configs/devices.yaml` with your device configurations:
 
 ```yaml
 devices:
-  - ip: 10.48.80.40          # EVE-NG management IP
+  - ip: 10.48.80.40          # Management IP (e.g., EVE-NG host)
     port: 30001               # Console port
     username: admin
     password: admin
@@ -110,6 +125,8 @@ devices:
         - show ip interface brief
         - show ip route
 ```
+
+> **Security Warning**: Do not store plain-text production credentials in `devices.yaml`. This file is designed for lab/educational use. Integration with HashiCorp Vault and environment variable support is planned in our roadmap.
 
 ### 3. Deploy Configurations
 
@@ -130,19 +147,19 @@ python config_to_yaml.py
 
 ## Network Topology
 
-### Topology File: `configs/devices_enetlab.pkt`
+### Lab Topology: `configs/devices_enetlab.pkt`
 
-- **Purpose**: Defines the network topology for EVE-NG/PNETLab simulation
-- **Format**: Cisco Packet Tracer (.pkt) file
-- **Usage**: Import into EVE-NG to build the physical network topology that PNetGimini will configure
+- **Format**: Cisco Packet Tracer (.pkt)
+- **Purpose**: Reference topology for lab simulation
+- **Usage**: Open in Cisco Packet Tracer to view the network design
 
 ### Topology Components
 
-The topology typically includes:
-- **Cisco Routers** (e.g., R0, R1, R2, R3, R4)
-- **Cisco Switches** (e.g., SW0, SW1, SW2, SW3, SW4, M-SW0, M-SW1, M-SW2)
-- **VLAN configurations** (VLAN 10, 20, 30, 40, 50)
-- **Routing protocols** (RIP, OSPF)
+The topology includes:
+- **Cisco Routers** — R0, R1, R2, R3, R4
+- **Cisco Switches** — SW0, SW1, SW2, SW3, SW4, M-SW0, M-SW1, M-SW2
+- **VLAN configurations** — VLAN 10, 20, 30, 40, 50
+- **Routing protocols** — RIP, OSPF
 - **NAT/PAT configurations**
 - **DHCP pools**
 
@@ -151,7 +168,7 @@ The topology typically includes:
 ```yaml
 # Example mapping from topology to devices.yaml
 devices:
-  - ip: 10.48.80.40      # EVE-NG management IP
+  - ip: 10.48.80.40      # Host management IP
     port: 30001           # Console port for Router R0
     username: admin
     password: admin
@@ -193,7 +210,7 @@ outputs/
 - Individual device status
 - Execution metadata
 
-## Configuration
+## Configuration Reference
 
 ### Device Configuration (devices.yaml)
 
@@ -226,17 +243,18 @@ devices:
 
 | Version | Changes |
 |---------|---------|
-| v1.0 | Initial implementation with custom # markup parsing |
-| v1.1 | Fixed configuration file parsing failure |
-| v1.2 | Migrated to YAML configuration format |
-| v1.3 | Fixed file path resolution error |
-| v1.4 | Added special handling for ping command timeout |
-| v1.5 | Added real-time terminal output |
+| v2.0 | First official release with YAML config, multi-threading, backup/rollback, and reports |
 | v1.6 | Fixed report output file overwrite bug |
+| v1.5 | Added real-time terminal output |
+| v1.4 | Added special handling for ping command timeout |
+| v1.3 | Fixed file path resolution error |
+| v1.2 | Migrated to YAML configuration format |
+| v1.1 | Fixed configuration file parsing failure |
+| v1.0 | Initial implementation with custom # markup parsing |
 
 ## Roadmap
 
-### Current Features (v1.x)
+### Current (v2.0)
 
 - ✅ YAML-based configuration
 - ✅ Multi-threaded deployment
@@ -253,6 +271,7 @@ devices:
 - **Dynamic Concurrency** — Adjust parallel connections based on device health score
 - **CMDB Integration** — NetBox/ServiceNow for asset lifecycle context
 - **MQTT Sensor Integration** — External environmental monitoring
+- **Vault Integration** — Secure credential management via HashiCorp Vault
 
 ## Contributing
 
@@ -268,8 +287,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Acknowledgments
 
-- Inspired by CAE (Computer-Aided Engineering) methodology
-- Built with Netmiko for network device communication
+- Inspired by CAE (Computer-Aided Engineering) methodology and FEA domain decomposition
+- Built with [Netmiko](https://github.com/ktbyers/netmiko) for network device communication
 - Designed for EVE-NG/PNETLab simulation environments
 
 ## Citation
@@ -288,4 +307,4 @@ If you use this software in your research, please cite it as:
 }
 ```
 
-Or using the CITATION.cff file included in this repository.
+Or using the [CITATION.cff](CITATION.cff) file included in this repository.
