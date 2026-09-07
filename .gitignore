@@ -55,3 +55,6 @@ config_to_yamlv1.py
 configs/*
 !configs/devices.yaml
 !configs/devices_enetlab.pkt
+
+# PRV (Patent) directory - exclude all files
+PRV/*
