@@ -47,9 +47,9 @@ python -m unittest discover -s tests -p "test_*.py"
 
 Expected output:
 ```text
-........
+..............
 ----------------------------------------------------------------------
-Ran 8 tests in 0.011s
+Ran 14 tests in 0.030s
 
 OK
 ```

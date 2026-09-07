@@ -80,15 +80,15 @@ def main():
             if key not in latest_configs or timestamp > latest_configs[key][0]:
                 latest_configs[key] = (timestamp, file_path)
         else:
-            logging.debug(f"文件名非快照格式，跳过: {file_path.name}")
+            logging.debug(f"File name does not match snapshot format, skipping: {file_path.name}")
 
     if not latest_configs:
-        logging.error("没有解析到有效的设备快照信息。")
+        logging.error("No valid snapshot files could be parsed.")
         return
 
     all_devices = []
     for (ip, port), (ts, path) in sorted(latest_configs.items()):
-        logging.info(f"处理最新快照: {path.name} (时间戳: {ts})")
+        logging.info(f"Processing latest snapshot: {path.name} (timestamp: {ts})")
         config_commands = parse_config_file(path)
         
         device_entry = {
@@ -104,7 +104,7 @@ def main():
         }
         all_devices.append(device_entry)
 
-    # 3. 写入 YAML 文件
+    # 3. Write YAML recovery file
     if all_devices:
         final_data = {'devices': all_devices}
         output_path_fixed = CONFIGS_DIR / "latest_recovery.yaml"
@@ -116,9 +116,9 @@ def main():
         with open(output_path_fixed, 'w', encoding='utf-8') as f:
             yaml.dump(final_data, f, Dumper=MyDumper, sort_keys=False, indent=2)
             
-        logging.info(f"回滚恢复文件已成功更新: {output_path_fixed}")
+        logging.info(f"Disaster recovery template successfully updated: {output_path_fixed}")
     else:
-        logging.warning("没有可转换的设备数据，未生成 YAML。")
+        logging.warning("No convertible device data available; YAML file was not generated.")
 
 if __name__ == "__main__":
     main()
