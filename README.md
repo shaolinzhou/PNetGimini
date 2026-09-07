@@ -1,5 +1,9 @@
 # PNetGimini
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.XXXXXXX.svg)](https://doi.org/10.5281/zenodo.XXXXXXX)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+
 **Provisioning Network Gemini System** — A physics-aware network automation deployment system.
 
 ## Overview
@@ -267,3 +271,21 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - Inspired by CAE (Computer-Aided Engineering) methodology
 - Built with Netmiko for network device communication
 - Designed for EVE-NG/PNETLab simulation environments
+
+## Citation
+
+If you use this software in your research, please cite it as:
+
+```bibtex
+@software{zhou2026pnetgimini,
+  author       = {Zhou, Shaolin},
+  title        = {PNetGimini: Provisioning Network Gemini System},
+  year         = {2026},
+  publisher    = {Zenodo},
+  version      = {2.0},
+  doi          = {10.5281/zenodo.XXXXXXX},
+  url          = {https://github.com/shaolinzhou/PNetGimini}
+}
+```
+
+Or using the CITATION.cff file included in this repository.
