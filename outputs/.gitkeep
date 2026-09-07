@@ -1,0 +1,2 @@
+# This file ensures the outputs directory is tracked by Git
+# Deployment reports and snapshots will be generated here when the system runs

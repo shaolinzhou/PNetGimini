@@ -17,8 +17,7 @@ build/
 # Logs (log files are tracked in logs/ directory)
 *.log
 
-# Outputs (reports and snapshots)
-outputs/
+# Outputs (reports and snapshots are tracked in outputs/ directory)
 
 # IDE
 .vscode/
