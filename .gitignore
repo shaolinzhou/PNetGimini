@@ -56,6 +56,7 @@ tree.txt
 configs/*
 !configs/devices.yaml
 !configs/devices_enetlab.pkt
+!configs/README.md
 
 # PRV (Patent) directory - exclude all files
 PRV/*

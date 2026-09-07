@@ -51,26 +51,31 @@ flowchart TD
 
 ```
 PNetGimini/
-├── main.py                     # Entry point: CLI parsing + ThreadPool dispatch
+├── main.py                     # Entry point: CLI parsing (--engine, -c) + Async/Thread dispatch
 ├── src/
 │   ├── models/
 │   │   ├── device.py           # Device model: IP, port, credentials, commands
-│   │   └── command.py          # Command model: category (config/show) + commands
+│   │   └── command.py          # Command model: category (config/show/verify) + commands
 │   ├── core/
+│   │   ├── adapters/           # Multi-vendor driver adapters (Cisco, Huawei, Factory)
+│   │   ├── async_engine.py     # Asyncio coroutine deployment engine (high concurrency)
+│   │   ├── config_diff.py      # Intelligent diff-based precision rollback engine
 │   │   ├── config_parser.py    # YAML parser → Device/Command objects
-│   │   ├── device_manager.py   # SSH/Telnet connection + execute + backup + rollback
-│   │   └── result_handler.py   # JSON/TXT report generation
+│   │   ├── device_manager.py   # Connection lifecycle, pre-change snapshot, self-healing
+│   │   └── result_handler.py   # JSON/TXT deployment audit report generation
 │   └── utils/
 │       └── logger.py           # RotatingFileHandler logging
+├── tests/                      # Automated test suite (offline-safe unit tests)
+│   └── test_core.py            # Adapters, diff rollback, and async engine tests
 ├── configs/
-│   ├── devices.yaml            # Main device configuration file
+│   ├── devices.yaml            # Main device configuration inventory
+│   ├── latest_recovery.yaml    # Auto-generated disaster recovery template
+│   ├── snapshots/              # Pre-change .conf snapshot archives
 │   └── devices_enetlab.pkt     # Cisco Packet Tracer lab topology
-├── logs/                       # System runtime logs (auto-generated)
-├── outputs/                    # Deployment reports and snapshots
-│   ├── deployment_report_*.txt # Human-readable deployment reports
-│   └── summary_report_*.json   # Machine-readable summary reports
-├── config_to_yaml.py           # Reverse tool: .conf → YAML recovery script
-└── requirements.txt            # Python dependencies
+├── logs/                       # System runtime logs (auto-rotated)
+├── outputs/                    # Deployment reports and audit trails
+├── config_to_yaml.py           # Reverse tool: snapshots/ → YAML recovery template
+└── requirements.txt            # Python dependencies (netmiko, pyyaml)
 ```
 
 ## Installation
@@ -131,20 +136,58 @@ devices:
 
 ### 3. Deploy Configurations
 
+PNetGimini provides flexible execution engines and concurrency tuning via CLI arguments:
+
 ```bash
-# Default config: configs/devices.yaml
+# 1. Standard Run: High-concurrency Asyncio engine (default, 10 workers)
 python main.py
 
-# Specify custom config file
-python main.py configs/custom_config.yaml
+# 2. High-Scale Deployment: Asyncio engine with 20 concurrent connections
+python main.py -c 20
+
+# 3. Custom Inventory Path
+python main.py configs/custom_config.yaml -c 15
+
+# 4. Classic ThreadPool Mode (for benchmark comparison or legacy environments)
+python main.py --engine thread -c 5
 ```
 
-### 4. Reverse Engineering (Recovery)
+CLI Parameters:
+| Option | Default | Description |
+|---|---|---|
+| `config` | `configs/devices.yaml` | Positional path to the target YAML inventory |
+| `--engine` | `async` | Execution engine: `async` (asyncio coroutines) or `thread` (`ThreadPoolExecutor`) |
+| `-c, --concurrency` | `10` | Maximum number of concurrent device connections |
+
+### 4. Reverse Engineering & Disaster Recovery
+
+Automatically scan latest pre-change snapshots and reconstruct a pristine YAML recovery file:
 
 ```bash
-# Convert .conf backups to recovery YAML
+# Convert latest snapshots from configs/snapshots/ into configs/latest_recovery.yaml
 python config_to_yaml.py
+
+# Execute disaster recovery
+python main.py configs/latest_recovery.yaml
 ```
+
+### 5. Running Automated Tests
+
+Run the offline-safe automated unit test suite (validates adapters, diff rollback, and async engine in <1 second):
+
+```bash
+python -m unittest discover -s tests -p "test_*.py"
+```
+
+## Documentation Index
+
+Detailed architectural and procedural documentation is partitioned across subdirectories:
+
+| Document | Scope & Contents |
+|---|---|
+| 📖 [**`src/core/README.md`**](src/core/README.md) | **Core Engine Architecture**: Asyncio coroutine engine, diff-based precision rollback algorithms, multi-vendor adapter design (Cisco vs. Huawei), and self-healing lifecycle. |
+| 🧪 [**`tests/README.md`**](tests/README.md) | **Test Suite Guide**: Unit test breakdown, non-destructive mocking strategy, and testing command references. |
+| ⚙️ [**`configs/README.md`**](configs/README.md) | **Configuration & Snapshots**: `devices.yaml` syntax specification (`config`, `show`, `verify`), snapshot naming conventions, and recovery workflows. |
 
 ## Network Topology
 
