@@ -13,13 +13,14 @@ PNetGimini is a network automation tool that borrows from CAE (Computer-Aided En
 Inspired by finite element analysis (FEA) domain decomposition methods, the system **lays the foundation to** treat network configuration as a multi-physics problem — separating basic data (IP/VLAN), routing convergence (OSPF/BGP), and post-processing (security/QoS) into distinct execution blocks with appropriate timing. A fully physics-aware engine with ODE-based prediction is planned for our next major release (**Sentinel CPNA**).
 
 ## Features
-
+ 
+- **High-Concurrency Async Engine** — Python `asyncio` coroutines + dynamic Semaphore for large-scale device fleets (100+ nodes)
+- **Intelligent Diff-based Rollback** — Calculates surgical reversal patches (undo only what changed) to eliminate syntax errors from blind full-config overwriting
+- **Multi-Vendor Driver Adapters** — Decoupled adapter layer (`AdapterFactory`, `CiscoAdapter`, `HuaweiAdapter`) for pagination, snapshots, and command negations
 - **YAML-based Configuration** — Structured device inventory and command definitions
-- **Multi-threaded Deployment** — ThreadPoolExecutor for parallel device provisioning
-- **Automatic Pre-change Backup** — Snapshots running-config before any modification
-- **Rollback Mechanism** — Auto-restore on connection failure or execution error
-- **Dual-format Reports** — JSON (machine-readable) + TXT (human-readable)
-- **Reverse Engineering Tool** — Extract commands from .conf backups to generate recovery YAML
+- **Structured Snapshot Lifecycle** — Automatic pre-change snapshot archival into `snapshots/` subdirectories
+- **Dual-format Reports** — Machine-readable JSON + human-readable TXT deployment audits
+- **Reverse Engineering Tool** — Automatically extracts configuration from `.conf` snapshots to reconstruct YAML recovery templates
 - **Project-level Isolation** — Configs, logs, outputs scoped to project directory
 - **Real-time Terminal Output** — Live command execution feedback
 - **Logging System** — RotatingFileHandler for automatic log management
@@ -243,6 +244,7 @@ devices:
 
 | Version | Changes |
 |---------|---------|
+| v2.1 | High-concurrency Asyncio engine, Diff-based precision rollback, multi-vendor adapter layer, structured snapshot management |
 | v2.0.1 | Zenodo integration, citation metadata (CITATION.cff, .zenodo.json), documentation enhancements |
 | v2.0 | First official release with YAML config, multi-threading, backup/rollback, and reports |
 | v1.6 | Fixed report output file overwrite bug |

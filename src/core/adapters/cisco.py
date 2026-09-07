@@ -1,0 +1,115 @@
+import re
+from typing import List, Optional
+from .base import BaseAdapter
+
+class CiscoAdapter(BaseAdapter):
+    """
+    Vendor adapter for Cisco IOS and IOS-XE devices.
+    """
+
+    BLOCK_PATTERNS = (
+        r"^interface\s+\S+",
+        r"^router\s+\S+",
+        r"^line\s+\S+",
+        r"^ip\s+access-list\s+\S+",
+        r"^route-map\s+\S+",
+        r"^vlan\s+\d+",
+        r"^policy-map\s+\S+",
+        r"^class-map\s+\S+",
+        r"^vrf\s+definition\s+\S+",
+        r"^ip\s+dhcp\s+pool\s+\S+"
+    )
+
+    def get_netmiko_device_type(self, custom_device_type: str) -> str:
+        if "_ssh" in custom_device_type.lower():
+            return "cisco_ios"
+        return "cisco_ios_telnet"
+
+    def get_disable_paging_command(self) -> str:
+        return "terminal length 0"
+
+    def get_snapshot_command(self) -> str:
+        return "show running-config"
+
+    def get_reversal_prefix(self) -> str:
+        return "no "
+
+    def get_block_exit_command(self) -> str:
+        return "exit"
+
+    def is_block_header(self, line: str) -> bool:
+        stripped = line.strip()
+        for pattern in self.BLOCK_PATTERNS:
+            if re.match(pattern, stripped, re.IGNORECASE):
+                return True
+        return False
+
+    def clean_raw_config(self, raw_config: str) -> List[str]:
+        cleaned = []
+        for raw_line in raw_config.splitlines():
+            line = raw_line.rstrip()
+            stripped = line.strip()
+            if not stripped:
+                continue
+            if stripped.startswith("!"):
+                continue
+            if stripped.lower().startswith("building configuration"):
+                continue
+            if stripped.lower().startswith("current configuration"):
+                continue
+            if stripped.lower().startswith("last configuration change"):
+                continue
+            if stripped.lower().startswith("nvram config last updated"):
+                continue
+            if stripped.lower() == "end":
+                continue
+            # If line is not indented (top-level), strip both sides; otherwise preserve 1-level indent
+            if line.startswith(" ") or line.startswith("\t"):
+                cleaned.append(" " + stripped)
+            else:
+                cleaned.append(stripped)
+        return cleaned
+
+    def generate_block_reversal(self, block_header: str, deployed_children: List[str], baseline_children: Optional[List[str]] = None) -> List[str]:
+        reversal_cmds = []
+        stripped_header = block_header.strip()
+
+        # If the block itself did not exist in the baseline (e.g. router ospf 1, or new ACL),
+        # the cleanest, safest reversal is to negate the entire block at global config level
+        if not baseline_children and not stripped_header.lower().startswith("interface"):
+            # Can safely negate router, vlan, access-list, dhcp pool, etc.
+            return [f"no {stripped_header}"]
+
+        # For interfaces or blocks that exist in baseline, enter block and reverse child commands
+        reversal_cmds.append(stripped_header)
+        baseline_set = set(c.strip() for c in baseline_children) if baseline_children else set()
+
+        for child in deployed_children:
+            child_str = child.strip()
+            if not child_str:
+                continue
+            if child_str in baseline_set:
+                continue  # Already in baseline, no need to touch
+
+            # Reverse specific attributes
+            if child_str.lower().startswith("no "):
+                # If deployed "no shutdown", reverse to "shutdown"
+                reversal_cmds.append(child_str[3:].strip())
+            elif child_str.lower().startswith("shutdown"):
+                reversal_cmds.append("no shutdown")
+            elif child_str.lower().startswith("ip address "):
+                # Find if baseline had an ip address
+                baseline_ip = None
+                for b in baseline_set:
+                    if b.lower().startswith("ip address "):
+                        baseline_ip = b
+                        break
+                if baseline_ip:
+                    reversal_cmds.append(baseline_ip)
+                else:
+                    reversal_cmds.append("no ip address")
+            else:
+                reversal_cmds.append(f"no {child_str}")
+
+        reversal_cmds.append(self.get_block_exit_command())
+        return reversal_cmds
