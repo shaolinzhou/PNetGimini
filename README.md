@@ -30,21 +30,22 @@ Inspired by finite element analysis (FEA) domain decomposition methods, the syst
 
 ```mermaid
 flowchart TD
-    A[main.py] --> B[ConfigParser: Parse devices.yaml]
-    B --> C{ThreadPoolExecutor}
-    C --> D1[DeviceManager: Device 1]
-    C --> D2[DeviceManager: Device 2]
-    C --> Dn[DeviceManager: Device N]
-    D1 --> E1[Connect via SSH/Telnet]
-    D1 --> E2[Backup running-config]
-    E2 --> E3[Deploy commands]
-    E3 --> E4{Success?}
-    E4 -->|Yes| E5[Log SUCCESS]
-    E4 -->|No| E6[Rollback to backup]
-    E5 --> F[ResultHandler]
-    E6 --> F
-    F --> G1[summary_report.json]
-    F --> G2[deployment_report.txt]
+    A[main.py CLI: --engine, -c] --> B[ConfigParser: Parse devices.yaml]
+    B --> C{Engine Selector}
+    C -->|async (Default)| D1[AsyncDeploymentEngine: Coroutines + Semaphore]
+    C -->|thread| D2[ThreadPoolExecutor: Worker Threads]
+    D1 & D2 --> E[DeviceManager: Per-Device Orchestration]
+    E --> F1[1. Connect via Netmiko with Vendor Adapter]
+    F1 --> F2[2. Disable Paging: terminal length 0 / screen-length 0]
+    F2 --> F3[3. Archive Pre-change Snapshot to snapshots/]
+    F3 --> F4[4. Execute Commands: config / show / verify]
+    F4 --> F5{Execution & Verify OK?}
+    F5 -->|Yes| F6[Log SUCCESS -> CONFIGURED]
+    F5 -->|No| F7[ConfigDiffEngine: Compute Minimal Reversal Patch]
+    F7 --> F8[Apply Surgical Diff Reversal / Clean Restore]
+    F6 & F8 --> G[ResultHandler]
+    G --> H1[summary_report_{timestamp}.json]
+    G --> H2[deployment_report_{timestamp}.txt]
 ```
 
 ## Architecture
@@ -130,6 +131,8 @@ devices:
       show:
         - show ip interface brief
         - show ip route
+      verify:
+        - ping 192.168.1.254
 ```
 
 > **Security Warning**: Do not store plain-text production credentials in `devices.yaml`. This file is designed for lab/educational use. Integration with HashiCorp Vault and environment variable support is planned in our roadmap.
@@ -300,24 +303,27 @@ devices:
 
 ## Roadmap
 
-### Current (v2.0)
+### Current (v2.1)
 
-- ✅ YAML-based configuration
-- ✅ Multi-threaded deployment
-- ✅ Automatic backup and rollback
-- ✅ Dual-format reports
+- ✅ YAML-based configuration & reverse recovery tool
+- ✅ High-concurrency Asyncio coroutine engine (`AsyncDeploymentEngine`)
+- ✅ Multi-threaded fallback deployment (`ThreadPoolExecutor`)
+- ✅ Intelligent diff-based precision rollback (`ConfigDiffEngine`)
+- ✅ Multi-vendor driver adapters (`CiscoAdapter`, `HuaweiAdapter`)
+- ✅ Structured pre-change snapshot lifecycle (`configs/snapshots/`)
+- ✅ Automated offline unit testing suite (`tests/test_core.py`)
+- ✅ Dual-format audit reports (JSON + TXT)
 - ✅ Real-time terminal output
-- ✅ Network topology support
+- ✅ Network topology simulation support (Cisco Packet Tracer)
 
 ### Future Vision: Sentinel CPNA
 
-- **Async I/O Engine** — Migrate from ThreadPool to pure asyncio
-- **gNMI/NETCONF Support** — Replace CLI with model-driven protocols
-- **Physics-Aware Engine** — ODE-based temperature/load → network delay prediction
-- **Dynamic Concurrency** — Adjust parallel connections based on device health score
-- **CMDB Integration** — NetBox/ServiceNow for asset lifecycle context
-- **MQTT Sensor Integration** — External environmental monitoring
-- **Vault Integration** — Secure credential management via HashiCorp Vault
+- **Physics-Aware ODE Engine** — ODE-based temperature/load → network convergence delay prediction
+- **Dynamic Cluster Concurrency** — Dynamically adjust Semaphore windows based on device health score
+- **gNMI/NETCONF Model-Driven Protocols** — Supplement CLI with Yang/gNMI telemetry streams
+- **CMDB & Asset Integration** — NetBox/ServiceNow for asset lifecycle and topology context
+- **MQTT Environmental Sensors** — External environmental temperature/vibration monitoring
+- **Vault Integration** — Secure dynamic credential retrieval via HashiCorp Vault
 
 ## Contributing
 
@@ -347,7 +353,7 @@ If you use this software in your research, please cite it as:
   title        = {PNetGimini: Provisioning Network Gemini System},
   year         = {2026},
   publisher    = {Zenodo},
-  version      = {2.0.1},
+  version      = {2.1},
   doi          = {10.5281/zenodo.22649486},
   url          = {https://github.com/shaolinzhou/PNetGimini}
 }
