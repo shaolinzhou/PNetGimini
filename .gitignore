@@ -53,3 +53,6 @@ version.txt
 word.py
 功能汇总.txt
 系统初始构想.txt
+
+# Configs project directory (exclude all files)
+configs/project/*
