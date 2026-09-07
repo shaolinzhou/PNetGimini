@@ -20,11 +20,6 @@ logs/
 
 # Outputs (reports and snapshots)
 outputs/
-configs/*.conf
-configs/*_snapshot_*.json
-configs/*_report_*.txt
-configs/summary_report_*.json
-configs/deployment_report_*.txt
 
 # IDE
 .vscode/
@@ -56,8 +51,6 @@ word.py
 系统初始构想.txt
 config_to_yamlv1.py
 
-# Configs project directory (exclude all files)
-configs/project/*
-configs/1/*
-configs/2/*
-configs/3/*
+# Configs directory - exclude all except devices.yaml
+configs/*
+!configs/devices.yaml
