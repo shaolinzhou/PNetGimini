@@ -18,22 +18,33 @@ Inspired by finite element analysis (FEA) domain decomposition methods, the syst
 - **Reverse Engineering Tool** — Extract commands from .conf backups to generate recovery YAML
 - **Project-level Isolation** — Configs, logs, outputs scoped to project directory
 - **Real-time Terminal Output** — Live command execution feedback
+- **Logging System** — RotatingFileHandler for automatic log management
+- **Network Topology Support** — Cisco Packet Tracer integration for EVE-NG/PNETLab
 
 ## Architecture
 
 ```
-main.py                     # Entry point: CLI parsing + ThreadPool dispatch
-├── src/models/
-│   ├── device.py           # Device model: IP, port, credentials, commands
-│   └── command.py          # Command model: category (config/show) + commands
-├── src/core/
-│   ├── config_parser.py    # YAML parser → Device/Command objects
-│   ├── device_manager.py   # SSH/Telnet connection + execute + backup + rollback
-│   └── result_handler.py   # JSON/TXT report generation
-├── src/utils/
-│   └── logger.py           # RotatingFileHandler logging
-├── config_to_yaml.py       # Reverse tool: .conf → YAML recovery script
-└── configs/                # Device configs + snapshots + reports (project-isolated)
+PNetGimini/
+├── main.py                     # Entry point: CLI parsing + ThreadPool dispatch
+├── src/
+│   ├── models/
+│   │   ├── device.py           # Device model: IP, port, credentials, commands
+│   │   └── command.py          # Command model: category (config/show) + commands
+│   ├── core/
+│   │   ├── config_parser.py    # YAML parser → Device/Command objects
+│   │   ├── device_manager.py   # SSH/Telnet connection + execute + backup + rollback
+│   │   └── result_handler.py   # JSON/TXT report generation
+│   └── utils/
+│       └── logger.py           # RotatingFileHandler logging
+├── configs/                    # Device configurations
+│   ├── devices.yaml            # Main device configuration file
+│   └── devices_enetlab.pkt     # Cisco Packet Tracer topology for EVE-NG
+├── logs/                       # System runtime logs (auto-generated)
+├── outputs/                    # Deployment reports and snapshots
+│   ├── deployment_report_*.txt # Human-readable deployment reports
+│   └── summary_report_*.json   # Machine-readable summary reports
+├── config_to_yaml.py           # Reverse tool: .conf → YAML recovery script
+└── requirements.txt            # Python dependencies
 ```
 
 ## Installation
@@ -41,14 +52,15 @@ main.py                     # Entry point: CLI parsing + ThreadPool dispatch
 ### Prerequisites
 
 - Python 3.8+
-- PNETLab or physical Cisco/Huawei devices
+- EVE-NG/PNETLab or physical Cisco/Huawei devices
+- Cisco Packet Tracer (for topology import)
 
 ### Setup
 
 ```bash
 # Clone the repository
-git clone <repository-url>
-cd PnetGimini
+git clone https://github.com/shaolinzhou/PNetGimini.git
+cd PNetGimini
 
 # Create virtual environment
 python -m venv venv
@@ -61,22 +73,26 @@ pip install -r requirements.txt
 
 ## Usage
 
-### Basic Run
+### 1. Import Network Topology
 
-```bash
-# Default config: configs/devices.yaml
-python main.py
+1. **Import into EVE-NG**:
+   - Open EVE-NG web interface
+   - Create a new lab
+   - Import the `configs/devices_enetlab.pkt` topology
+   - Start all devices
 
-# Specify custom config
-python main.py configs/project1.yaml
-```
+2. **Verify Topology**:
+   - Ensure all devices are running
+   - Note the management IP addresses and console ports
 
-### Configuration Format (devices.yaml)
+### 2. Configure Devices
+
+Edit `configs/devices.yaml` with your device configurations:
 
 ```yaml
 devices:
-  - ip: 192.168.1.1
-    port: 30001
+  - ip: 10.48.80.40          # EVE-NG management IP
+    port: 30001               # Console port
     username: admin
     password: admin
     device_type: cisco_ios_telnet
@@ -91,7 +107,17 @@ devices:
         - show ip route
 ```
 
-### Reverse Engineering (Recovery)
+### 3. Deploy Configurations
+
+```bash
+# Default config: configs/devices.yaml
+python main.py
+
+# Specify custom config file
+python main.py configs/custom_config.yaml
+```
+
+### 4. Reverse Engineering (Recovery)
 
 ```bash
 # Convert .conf backups to recovery YAML
@@ -100,30 +126,11 @@ python config_to_yaml.py
 
 ## Network Topology
 
-The project includes a Cisco Packet Tracer topology file that defines the network lab environment:
-
-### Topology File: `devices_enetlab.pkt`
+### Topology File: `configs/devices_enetlab.pkt`
 
 - **Purpose**: Defines the network topology for EVE-NG/PNETLab simulation
 - **Format**: Cisco Packet Tracer (.pkt) file
 - **Usage**: Import into EVE-NG to build the physical network topology that PNetGimini will configure
-
-### How to Use
-
-1. **Import into EVE-NG**:
-   - Open EVE-NG web interface
-   - Create a new lab
-   - Import the `devices_enetlab.pkt` topology
-   - Start all devices
-
-2. **Configure PNetGimini**:
-   - Edit `configs/devices.yaml` with device IPs and ports matching your EVE-NG lab
-   - Ensure device IPs/ports in YAML match the topology's management interfaces
-
-3. **Deploy**:
-   ```bash
-   python main.py configs/devices.yaml
-   ```
 
 ### Topology Components
 
@@ -153,13 +160,63 @@ devices:
 
 ## Output Structure
 
+### Logs Directory (`logs/`)
+
 ```
-configs/
-├── devices.yaml                          # Input configuration
-├── {ip}_{port}_snapshot_{timestamp}.conf # Pre-change backup
-├── summary_report_{timestamp}.json       # Machine-readable report
-└── deployment_report_{timestamp}.txt     # Human-readable report
+logs/
+└── automation.log           # System runtime logs (auto-rotated, max 10MB × 5 files)
 ```
+
+### Outputs Directory (`outputs/`)
+
+```
+outputs/
+├── deployment_report_{timestamp}.txt     # Human-readable deployment report
+└── summary_report_{timestamp}.json       # Machine-readable summary report
+```
+
+### Report Contents
+
+**Deployment Report (TXT)**:
+- Device connection status
+- Command execution results
+- Error messages and rollback actions
+- Timestamp and duration
+
+**Summary Report (JSON)**:
+- Total devices processed
+- Success/error counts
+- Individual device status
+- Execution metadata
+
+## Configuration
+
+### Device Configuration (devices.yaml)
+
+```yaml
+devices:
+  - ip: <management_ip>
+    port: <console_port>
+    username: <username>
+    password: <password>
+    device_type: cisco_ios_telnet  # or cisco_ios_ssh, huawei_telnet, etc.
+    commands:
+      config:
+        - <configuration_command_1>
+        - <configuration_command_2>
+      show:
+        - <show_command_1>
+        - <show_command_2>
+```
+
+### Supported Device Types
+
+| Device Type | Protocol | Platform |
+|-------------|----------|----------|
+| `cisco_ios_telnet` | Telnet | Cisco IOS |
+| `cisco_ios_ssh` | SSH | Cisco IOS |
+| `huawei_telnet` | Telnet | Huawei VRP |
+| `huawei_ssh` | SSH | Huawei VRP |
 
 ## Version History
 
@@ -175,7 +232,16 @@ configs/
 
 ## Roadmap
 
-### Sentinel CPNA (Future Vision)
+### Current Features (v1.x)
+
+- ✅ YAML-based configuration
+- ✅ Multi-threaded deployment
+- ✅ Automatic backup and rollback
+- ✅ Dual-format reports
+- ✅ Real-time terminal output
+- ✅ Network topology support
+
+### Future Vision: Sentinel CPNA
 
 - **Async I/O Engine** — Migrate from ThreadPool to pure asyncio
 - **gNMI/NETCONF Support** — Replace CLI with model-driven protocols
@@ -184,6 +250,20 @@ configs/
 - **CMDB Integration** — NetBox/ServiceNow for asset lifecycle context
 - **MQTT Sensor Integration** — External environmental monitoring
 
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
 ## License
 
-MIT License
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Acknowledgments
+
+- Inspired by CAE (Computer-Aided Engineering) methodology
+- Built with Netmiko for network device communication
+- Designed for EVE-NG/PNETLab simulation environments
