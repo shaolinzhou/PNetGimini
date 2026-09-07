@@ -38,22 +38,24 @@ Inspired by finite element analysis (FEA) domain decomposition methods, the syst
 
 ```mermaid
 flowchart TD
-    A[main.py CLI: --engine, -c] --> B[ConfigParser: Parse devices.yaml]
-    B --> C{Engine Selector}
-    C -->|async (Default)| D1[AsyncDeploymentEngine: Coroutines + Semaphore]
-    C -->|thread| D2[ThreadPoolExecutor: Worker Threads]
-    D1 & D2 --> E[DeviceManager: Per-Device Orchestration]
-    E --> F1[1. Connect via Netmiko with Vendor Adapter]
-    F1 --> F2[2. Disable Paging: terminal length 0 / screen-length 0]
-    F2 --> F3[3. Archive Pre-change Snapshot to snapshots/]
-    F3 --> F4[4. Execute Commands: config / show / verify]
-    F4 --> F5{Execution & Verify OK?}
-    F5 -->|Yes| F6[Log SUCCESS -> CONFIGURED]
-    F5 -->|No| F7[ConfigDiffEngine: Compute Minimal Reversal Patch]
-    F7 --> F8[Apply Surgical Diff Reversal / Clean Restore]
-    F6 & F8 --> G[ResultHandler]
-    G --> H1[summary_report_{timestamp}.json]
-    G --> H2[deployment_report_{timestamp}.txt]
+    A["main.py CLI: --engine, -c"] --> B["ConfigParser: Parse devices.yaml"]
+    B --> C{"Engine Selector"}
+    C -->|"async (Default)"| D1["AsyncDeploymentEngine: Coroutines + Semaphore"]
+    C -->|"thread"| D2["ThreadPoolExecutor: Worker Threads"]
+    D1 --> E["DeviceManager: Per-Device Orchestration"]
+    D2 --> E
+    E --> F1["1. Connect via Netmiko with Vendor Adapter"]
+    F1 --> F2["2. Disable Paging: terminal length 0 / screen-length 0"]
+    F2 --> F3["3. Archive Pre-change Snapshot to snapshots/"]
+    F3 --> F4["4. Execute Commands: config / show / verify"]
+    F4 --> F5{"Execution & Verify OK?"}
+    F5 -->|"Yes"| F6["Log SUCCESS -> CONFIGURED"]
+    F5 -->|"No"| F7["ConfigDiffEngine: Compute Minimal Reversal Patch"]
+    F7 --> F8["Apply Surgical Diff Reversal / Clean Restore"]
+    F6 --> G["ResultHandler"]
+    F8 --> G
+    G --> H1["summary_report_{timestamp}.json"]
+    G --> H2["deployment_report_{timestamp}.txt"]
 ```
 
 ## Architecture

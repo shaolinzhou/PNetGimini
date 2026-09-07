@@ -63,12 +63,12 @@ Earlier versions attempted rollback by blasting the raw running-config backup ba
 
 ```mermaid
 graph TD
-    A[Deployment Failure Detected] --> B[Capture Deployed Commands List]
-    B --> C[ConfigDiffEngine: Hierarchical Diff vs Snapshot Baseline]
-    C --> D{Is Minimal Diff Computed?}
-    D -- Yes --> E["Apply Reversal Patch (e.g. no router ospf 100)"]
-    D -- No --> F["Clean Baseline (Strip headers/comments) & Restore"]
-    E --> G[Device Restored to Pristine Baseline]
+    A["Deployment Failure Detected"] --> B["Capture Deployed Commands List"]
+    B --> C["ConfigDiffEngine: Hierarchical Diff vs Snapshot Baseline"]
+    C --> D{"Is Minimal Diff Computed?"}
+    D -->|"Yes"| E["Apply Reversal Patch (e.g. no router ospf 100)"]
+    D -->|"No"| F["Clean Baseline (Strip headers/comments) & Restore"]
+    E --> G["Device Restored to Pristine Baseline"]
     F --> G
 ```
 
