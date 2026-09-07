@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  <a href="https://doi.org/10.5281/zenodo.22649485"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.22649485.svg" alt="DOI"></a>
+  <a href="https://doi.org/10.5281/zenodo.22650640"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.22650640.svg" alt="DOI"></a>
   <a href="https://opensource.org/licenses/Apache-2.0"><img src="https://img.shields.io/badge/License-Apache_2.0-blue.svg" alt="License: Apache 2.0"></a>
   <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.8+-blue.svg" alt="Python 3.8+"></a>
 </p>
