@@ -45,3 +45,11 @@ config_local.yaml
 
 # Generated files
 *.docx
+
+# Project specific files (excluded from sync)
+Deepseek*.txt
+mainv*.py
+version.txt
+word.py
+功能汇总.txt
+系统初始构想.txt
