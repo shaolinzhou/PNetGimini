@@ -51,6 +51,7 @@ word.py
 系统初始构想.txt
 config_to_yamlv1.py
 
-# Configs directory - exclude all except devices.yaml
+# Configs directory - exclude all except specific files
 configs/*
 !configs/devices.yaml
+!configs/devices_enetlab.pkt

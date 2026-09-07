@@ -98,6 +98,59 @@ devices:
 python config_to_yaml.py
 ```
 
+## Network Topology
+
+The project includes a Cisco Packet Tracer topology file that defines the network lab environment:
+
+### Topology File: `devices_enetlab.pkt`
+
+- **Purpose**: Defines the network topology for EVE-NG/PNETLab simulation
+- **Format**: Cisco Packet Tracer (.pkt) file
+- **Usage**: Import into EVE-NG to build the physical network topology that PNetGimini will configure
+
+### How to Use
+
+1. **Import into EVE-NG**:
+   - Open EVE-NG web interface
+   - Create a new lab
+   - Import the `devices_enetlab.pkt` topology
+   - Start all devices
+
+2. **Configure PNetGimini**:
+   - Edit `configs/devices.yaml` with device IPs and ports matching your EVE-NG lab
+   - Ensure device IPs/ports in YAML match the topology's management interfaces
+
+3. **Deploy**:
+   ```bash
+   python main.py configs/devices.yaml
+   ```
+
+### Topology Components
+
+The topology typically includes:
+- **Cisco Routers** (e.g., R0, R1, R2, R3, R4)
+- **Cisco Switches** (e.g., SW0, SW1, SW2, SW3, SW4, M-SW0, M-SW1, M-SW2)
+- **VLAN configurations** (VLAN 10, 20, 30, 40, 50)
+- **Routing protocols** (RIP, OSPF)
+- **NAT/PAT configurations**
+- **DHCP pools**
+
+### Mapping Topology to devices.yaml
+
+```yaml
+# Example mapping from topology to devices.yaml
+devices:
+  - ip: 10.48.80.40      # EVE-NG management IP
+    port: 30001           # Console port for Router R0
+    username: admin
+    password: admin
+    device_type: cisco_ios_telnet
+    commands:
+      config:
+        - hostname R0
+        # ... configuration commands
+```
+
 ## Output Structure
 
 ```
