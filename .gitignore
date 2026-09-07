@@ -41,6 +41,7 @@ config_local.yaml
 *.pkt
 
 # Project specific files (excluded from sync)
+DEVELOPMENT_PLAN.md
 Deepseek*.txt
 mainv*.py
 version.txt
