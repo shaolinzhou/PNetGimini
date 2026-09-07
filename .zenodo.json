@@ -1,7 +1,7 @@
 {
   "title": "PNetGimini: Provisioning Network Gemini System",
   "version": "3.0",
-  "description": "A physics-aware network automation deployment system inspired by CAE methodology for segmenting complex simulation tasks. Deploys configurations to multi-vendor network devices via SSH/Telnet with automatic backup, rollback, and structured reporting.",
+  "description": "An enterprise-grade high-concurrency network automation deployment system. Deploys configurations to multi-vendor network devices via SSH/Telnet with automatic backup, intelligent diff rollback, and structured audit reporting.",
   "creators": [
     {
       "name": "Zhou, Shaolin"
@@ -11,7 +11,6 @@
   "license": "Apache-2.0",
   "keywords": [
     "network-automation",
-    "cae-methodology",
     "network-deployment",
     "cisco",
     "huawei",
@@ -20,7 +19,7 @@
     "netmiko",
     "eve-ng",
     "pnetlab",
-    "physics-aware",
+    "concurrency",
     "rollback",
     "backup"
   ],

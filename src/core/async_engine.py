@@ -13,8 +13,7 @@ class AsyncDeploymentEngine:
     High-Performance Asynchronous Deployment Engine.
     Leverages Python asyncio coroutines and dynamic adaptive semaphores to scale beyond
     traditional thread-pool limitations, preventing thread context-switch overhead for large fleets (100+ devices).
-    
-    Inspired by CAE multi-physics load control: incorporates dynamic throttling based on cluster health.
+    Incorporates dynamic throttling based on cluster health and response telemetry.
     """
 
     def __init__(self, devices: List[Device], outputs_dir: Path, concurrency: int = 10, enable_adaptive: bool = True):

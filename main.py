@@ -22,7 +22,7 @@ OUTPUTS_DIR = BASE_DIR / "outputs"
 
 def parse_arguments():
     parser = argparse.ArgumentParser(
-        description="PNetGimini: Physics-Aware High-Concurrency Network Automation Deployment System",
+        description="PNetGimini: Enterprise-Grade High-Concurrency Network Automation Deployment System",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
     parser.add_argument(
@@ -64,7 +64,7 @@ def main():
     start_time = time.time()
     
     logging.info("=" * 60)
-    logging.info(f"PNetGimini (Sentinel) System Started at: {start_timestamp}")
+    logging.info(f"PNetGimini System Started at: {start_timestamp}")
     logging.info(f"Active Engine: {args.engine.upper()} | Concurrency limit: {args.concurrency}")
     logging.info("=" * 60)
 

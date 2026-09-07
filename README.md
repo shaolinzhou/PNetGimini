@@ -11,14 +11,14 @@
 </p>
 
 <p align="center">
-  <strong>Provisioning Network Gemini System</strong> — A physics-aware network automation deployment system inspired by CAE methodology.
+  <strong>Provisioning Network Gemini System</strong> — An enterprise-grade high-concurrency network automation deployment system.
 </p>
 
 ## Overview
 
-PNetGimini is a network automation tool that borrows from CAE (Computer-Aided Engineering) methodology for segmenting complex simulation tasks. It deploys configurations to multi-vendor network devices (Cisco/Huawei) via SSH/Telnet, with automatic backup, rollback, and structured reporting.
+PNetGimini is an enterprise-grade network automation deployment system designed for high-concurrency multi-vendor environments. It deploys configurations to network devices (Cisco/Huawei) via SSH/Telnet, with automatic backup, surgical diff rollback, and structured audit reporting.
 
-Inspired by finite element analysis (FEA) domain decomposition methods, the system **lays the foundation to** treat network configuration as a multi-physics problem — separating basic data (IP/VLAN), routing convergence (OSPF/BGP), and post-processing (security/QoS) into distinct execution blocks with appropriate timing. A fully physics-aware engine with ODE-based prediction is planned for our next major release (**Sentinel CPNA**).
+The system utilizes a highly optimized concurrency engine to orchestrate complex multi-device deployments. By partitioning network configurations into isolated, sequential execution blocks—such as separating basic bootstrap data (IP/VLAN), routing convergence (OSPF/BGP), and post-processing services (security/QoS)—the engine deploys configurations in parallel across all target nodes. This structured, thread-safe approach eliminates command race conditions, optimizes CPU and network I/O performance, and ensures deterministic, orderly state transitions across the entire hierarchical topology without blocking.
 
 ## Features
  
@@ -326,15 +326,13 @@ devices:
 - ✅ Dual-format audit reports (JSON + TXT)
 - ✅ Real-time terminal output
 - ✅ Network topology simulation support (Cisco Packet Tracer)
+### Future Roadmap
 
-### Future Vision: Sentinel CPNA
-
-- **Physics-Aware ODE Engine** — ODE-based temperature/load → network convergence delay prediction
-- **Dynamic Cluster Concurrency** — Dynamically adjust Semaphore windows based on device health score
-- **gNMI/NETCONF Model-Driven Protocols** — Supplement CLI with Yang/gNMI telemetry streams
-- **CMDB & Asset Integration** — NetBox/ServiceNow for asset lifecycle and topology context
-- **MQTT Environmental Sensors** — External environmental temperature/vibration monitoring
-- **Vault Integration** — Secure dynamic credential retrieval via HashiCorp Vault
+- **Dynamic Cluster Concurrency** — Dynamically adjust Semaphore windows based on device health metrics and latency telemetry
+- **gNMI/NETCONF Model-Driven Protocols** — Supplement CLI with YANG/gNMI streaming telemetry and state validation
+- **CMDB & Inventory Integration** — NetBox and ServiceNow REST API synchronization for automated topology mapping
+- **Pre/Post-Deployment Verification** — Automated synthetic route convergence, latency assertions, and BGP/OSPF neighbor state checks
+- **HashiCorp Vault Integration** — Dynamic, short-lived privileged credential retrieval via Vault Secret Engine
 
 ## Contributing
 
@@ -350,9 +348,8 @@ This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENS
 
 ## Acknowledgments
 
-- Inspired by CAE (Computer-Aided Engineering) methodology and FEA domain decomposition
-- Built with [Netmiko](https://github.com/ktbyers/netmiko) for network device communication
-- Designed for EVE-NG/PNETLab simulation environments
+- Built with [Netmiko](https://github.com/ktbyers/netmiko) for multi-vendor network device communication
+- Designed and tested with EVE-NG / PNETLab / Cisco Packet Tracer simulation environments
 
 ## Citation
 
