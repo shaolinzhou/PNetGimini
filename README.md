@@ -243,6 +243,7 @@ devices:
 
 | Version | Changes |
 |---------|---------|
+| v2.0.1 | Zenodo integration, citation metadata (CITATION.cff, .zenodo.json), documentation enhancements |
 | v2.0 | First official release with YAML config, multi-threading, backup/rollback, and reports |
 | v1.6 | Fixed report output file overwrite bug |
 | v1.5 | Added real-time terminal output |
@@ -301,7 +302,7 @@ If you use this software in your research, please cite it as:
   title        = {PNetGimini: Provisioning Network Gemini System},
   year         = {2026},
   publisher    = {Zenodo},
-  version      = {2.0},
+  version      = {2.0.1},
   doi          = {10.5281/zenodo.XXXXXXX},
   url          = {https://github.com/shaolinzhou/PNetGimini}
 }
