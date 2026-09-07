@@ -1,0 +1,221 @@
+--- Network Automation Deployment Report (2025-10-01 12:51:32.099079) ---
+
+### Device 1 Report: 192.168.239.134:30002:admin:***:cisco_ios_telnet ###
+Status: CONFIGURED
+
+--- Command Execution Details ---
+
+Category: config
+Status: SUCCESS
+Commands Sent:
+  - hostname W2
+  - interface e0/1
+  - switchport port-security maximum 2
+
+Device Output:
+
+W2(config)#
+W2(config)#
+W2(config)#hostname W2
+W2(config)#
+W2(config)#interface e0/1
+W2(config-if)#
+W2(config-if)#switchport port-security maximum 2
+W2(config-if)#
+W2(config-if)#
+W2(config-if)#end
+W2#
+----------------------------------------
+
+### Device 2 Report: 192.168.239.134:30004:admin:***:cisco_ios_telnet ###
+Status: CONFIGURED
+
+--- Command Execution Details ---
+
+Category: config
+Status: SUCCESS
+Commands Sent:
+  - hostname R2
+  - interface e0/0
+  - ip address 10.10.10.2 255.255.255.252
+  - no shutdown
+  - interface e0/1
+  - ip address 192.168.2.1 255.255.255.0
+  - no shutdown
+  - router ospf 100
+  - network 192.168.2.0 0.0.0.255 area 0
+  - network 10.10.10.0 0.0.0.3 area 0
+
+Device Output:
+
+R2(config)#
+R2(config)#
+R2(config)#hostname R2
+R2(config)#
+R2(config)#interface e0/0
+R2(config-if)#
+R2(config-if)#ip address 10.10.10.2 255.255.255.252
+R2(config-if)#
+R2(config-if)#no shutdown
+R2(config-if)#
+R2(config-if)#interface e0/1
+R2(config-if)#
+R2(config-if)#ip address 192.168.2.1 255.255.255.0
+R2(config-if)#
+R2(config-if)#no shutdown
+R2(config-if)#
+R2(config-if)#router ospf 100
+R2(config-router)#
+R2(config-router)#network 192.168.2.0 0.0.0.255 area 0
+R2(config-router)#
+R2(config-router)#network 10.10.10.0 0.0.0.3 area 0
+R2(config-router)#
+R2(config-router)#
+R2(config-router)#end
+R2#
+----------------------------------------
+
+Category: show
+Status: SUCCESS
+Commands Sent:
+  - show ip interface brief
+  - show ip route
+  - ping 192.168.2.10 repeat 9
+  - ping 192.168.1.10 repeat 9
+
+Device Output:
+Interface                  IP-Address      OK? Method Status                Protocol
+Ethernet0/0                10.10.10.2      YES manual up                    up      
+Ethernet0/1                192.168.2.1     YES manual up                    up      
+Ethernet0/2                unassigned      YES TFTP   down                  down    
+Ethernet0/3                unassigned      YES TFTP   down                  down    
+Ethernet1/0                unassigned      YES TFTP   down                  down    
+Ethernet1/1                unassigned      YES TFTP   down                  down    
+Ethernet1/2                unassigned      YES TFTP   down                  down    
+Ethernet1/3                unassigned      YES TFTP   down                  down    
+R2#
+Codes: L - local, C - connected, S - static, R - RIP, M - mobile, B - BGP
+       D - EIGRP, EX - EIGRP external, O - OSPF, IA - OSPF inter area 
+       N1 - OSPF NSSA external type 1, N2 - OSPF NSSA external type 2
+       E1 - OSPF external type 1, E2 - OSPF external type 2
+       i - IS-IS, su - IS-IS summary, L1 - IS-IS level-1, L2 - IS-IS level-2
+       ia - IS-IS inter area, * - candidate default, U - per-user static route
+       o - ODR, P - periodic downloaded static route, H - NHRP, l - LISP
+       a - application route
+       + - replicated route, % - next hop override, p - overrides from PfR
+
+Gateway of last resort is not set
+
+      10.0.0.0/8 is variably subnetted, 2 subnets, 2 masks
+C        10.10.10.0/30 is directly connected, Ethernet0/0
+L        10.10.10.2/32 is directly connected, Ethernet0/0
+O     192.168.1.0/24 [110/20] via 10.10.10.1, 00:14:09, Ethernet0/0
+      192.168.2.0/24 is variably subnetted, 2 subnets, 2 masks
+C        192.168.2.0/24 is directly connected, Ethernet0/1
+L        192.168.2.1/32 is directly connected, Ethernet0/1
+R2#
+Type escape sequence to abort.
+Sending 9, 100-byte ICMP Echos to 192.168.2.10, timeout is 2 seconds:
+!!!!!!!!!
+Success rate is 100 percent (9/9), round-trip min/avg/max = 1/1/2 ms
+Type escape sequence to abort.
+Sending 9, 100-byte ICMP Echos to 192.168.1.10, timeout is 2 seconds:
+!!!!!!!!!
+Success rate is 100 percent (9/9), round-trip min/avg/max = 1/2/4 ms
+
+----------------------------------------
+
+### Device 3 Report: 192.168.239.134:30001:admin:***:cisco_ios_telnet ###
+Status: CONFIGURED
+
+--- Command Execution Details ---
+
+Category: config
+Status: SUCCESS
+Commands Sent:
+  - hostname R1
+  - interface e0/0
+  - ip address 192.168.1.1 255.255.255.0
+  - no shutdown
+  - interface e0/1
+  - ip address 10.10.10.1 255.255.255.252
+  - no shutdown
+  - router ospf 100
+  - network 192.168.1.0 0.0.0.255 area 0
+  - network 10.10.10.0 0.0.0.3 area 0
+
+Device Output:
+
+R1(config)#
+R1(config)#
+R1(config)#hostname R1
+R1(config)#
+R1(config)#interface e0/0
+R1(config-if)#
+R1(config-if)#ip address 192.168.1.1 255.255.255.0
+R1(config-if)#
+R1(config-if)#no shutdown
+R1(config-if)#
+R1(config-if)#interface e0/1
+R1(config-if)#
+R1(config-if)#ip address 10.10.10.1 255.255.255.252
+R1(config-if)#
+R1(config-if)#no shutdown
+R1(config-if)#
+R1(config-if)#router ospf 100
+R1(config-router)#
+R1(config-router)#network 192.168.1.0 0.0.0.255 area 0
+R1(config-router)#
+R1(config-router)#network 10.10.10.0 0.0.0.3 area 0
+R1(config-router)#
+R1(config-router)#
+R1(config-router)#end
+R1#
+----------------------------------------
+
+Category: show
+Status: SUCCESS
+Commands Sent:
+  - show ip interface brief
+  - show ip route
+  - ping 192.168.1.10 repeat 9
+  - ping 10.10.10.1 repeat 9
+
+Device Output:
+Interface                  IP-Address      OK? Method Status                Protocol
+Ethernet0/0                192.168.1.1     YES manual up                    up      
+Ethernet0/1                10.10.10.1      YES manual up                    up      
+Ethernet0/2                unassigned      YES TFTP   down                  down    
+Ethernet0/3                unassigned      YES TFTP   down                  down    
+R1#
+Codes: L - local, C - connected, S - static, R - RIP, M - mobile, B - BGP
+       D - EIGRP, EX - EIGRP external, O - OSPF, IA - OSPF inter area 
+       N1 - OSPF NSSA external type 1, N2 - OSPF NSSA external type 2
+       E1 - OSPF external type 1, E2 - OSPF external type 2
+       i - IS-IS, su - IS-IS summary, L1 - IS-IS level-1, L2 - IS-IS level-2
+       ia - IS-IS inter area, * - candidate default, U - per-user static route
+       o - ODR, P - periodic downloaded static route, H - NHRP, l - LISP
+       a - application route
+       + - replicated route, % - next hop override, p - overrides from PfR
+
+Gateway of last resort is not set
+
+      10.0.0.0/8 is variably subnetted, 2 subnets, 2 masks
+C        10.10.10.0/30 is directly connected, Ethernet0/1
+L        10.10.10.1/32 is directly connected, Ethernet0/1
+      192.168.1.0/24 is variably subnetted, 2 subnets, 2 masks
+C        192.168.1.0/24 is directly connected, Ethernet0/0
+L        192.168.1.1/32 is directly connected, Ethernet0/0
+O     192.168.2.0/24 [110/20] via 10.10.10.2, 00:14:09, Ethernet0/1
+R1#
+Type escape sequence to abort.
+Sending 9, 100-byte ICMP Echos to 192.168.1.10, timeout is 2 seconds:
+!!!!!!!!!
+Success rate is 100 percent (9/9), round-trip min/avg/max = 1/2/8 ms
+Type escape sequence to abort.
+Sending 9, 100-byte ICMP Echos to 10.10.10.1, timeout is 2 seconds:
+!!!!!!!!!
+Success rate is 100 percent (9/9), round-trip min/avg/max = 1/1/3 ms
+
+----------------------------------------
+
