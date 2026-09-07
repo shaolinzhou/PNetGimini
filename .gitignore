@@ -14,8 +14,7 @@ __pycache__/
 dist/
 build/
 
-# Logs
-logs/
+# Logs (log files are tracked in logs/ directory)
 *.log
 
 # Outputs (reports and snapshots)
