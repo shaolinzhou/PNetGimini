@@ -1,10 +1,18 @@
 # PNetGimini
 
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22649486.svg)](https://doi.org/10.5281/zenodo.22649486)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+<p align="center">
+  <img src="PNetGimini.jpg" alt="PNetGimini Architecture & Automation Topology" width="100%">
+</p>
 
-**Provisioning Network Gemini System** — A network automation deployment system inspired by CAE methodology.
+<p align="center">
+  <a href="https://doi.org/10.5281/zenodo.22649486"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.22649486.svg" alt="DOI"></a>
+  <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT"></a>
+  <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.8+-blue.svg" alt="Python 3.8+"></a>
+</p>
+
+<p align="center">
+  <strong>Provisioning Network Gemini System</strong> — A physics-aware network automation deployment system inspired by CAE methodology.
+</p>
 
 ## Overview
 
