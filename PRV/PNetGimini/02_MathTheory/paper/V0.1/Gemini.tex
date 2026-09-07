@@ -1,0 +1,68 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath, amssymb, amsthm}
+\usepackage{bm}
+
+\title{Theoretical Foundation of PNetGimini: \\ A Cyber-Physical Adaptive Deployment Model}
+\author{Framework: Domain Decomposition with Explicit Lagrangian Integration}
+\date{February 2026}
+
+\begin{document}
+
+\maketitle
+
+\section{The Global Governing Equation}
+The network configuration deployment process is modeled as a second-order dynamic system in a high-dimensional state space. The evolution of the configuration state vector $\mathbf{x}$ is governed by the global semi-discrete equation of motion:
+
+\begin{equation}
+\mathbf{M}\ddot{\mathbf{x}}(t) + \mathbf{C}(\bm{\theta})\dot{\mathbf{x}}(t) + \mathbf{K}_{sys}\mathbf{x}(t) = \mathbf{F}_{ext}(t) + \mathbf{G}^T \bm{\lambda}
+\end{equation}
+
+Where:
+\begin{itemize}
+    \item $\mathbf{M}$ is the \textbf{Inertia Matrix}, representing the response latency and hardware constraints of network devices.
+    \item $\mathbf{C}(\bm{\theta})$ is the \textbf{Adaptive Damping Matrix}, where $\bm{\theta} = \{T, L, A\}$ represents physical metrics (Temperature, Load, Age). It dissipates kinetic energy to prevent configuration oscillation.
+    \item $\mathbf{K}_{sys}$ is the \textbf{Stiffness Matrix}, representing the topological coupling strength between subdomains.
+    \item $\mathbf{F}_{ext}(t)$ is the \textbf{External Intent Force}, driving the system toward the target configuration $S_{target}$.
+    \item $\mathbf{G}^T \bm{\lambda}$ represents the \textbf{Constraint Forces}, where $\bm{\lambda}$ are the Lagrangian multipliers ensuring boundary consistency.
+\end{itemize}
+
+\section{Domain Decomposition and FETI Method}
+Using the \textit{Finite Element Tearing and Interconnecting} (FETI) approach, the global network domain $\Omega$ is partitioned into $N$ non-overlapping subdomains $\Omega_i$. For each subdomain, the local Lagrangian is defined as:
+
+\begin{equation}
+\mathcal{L}_i(\mathbf{x}_i, \bm{\lambda}) = \frac{1}{2}\mathbf{x}_i^T \mathbf{K}_i \mathbf{x}_i - \mathbf{f}_i^T \mathbf{x}_i + \bm{\lambda}^T (\mathbf{B}_i \mathbf{x}_i)
+\end{equation}
+
+Subject to the global interface continuity constraint:
+\begin{equation}
+\sum_{i=1}^{N} \mathbf{B}_i \mathbf{x}_i = \mathbf{0}
+\end{equation}
+Where $\mathbf{B}_i$ is a signed Boolean mapping matrix that extracts interface degrees of freedom (DoF).
+
+\section{Explicit Time Integration and Stability}
+The system is solved using an \textbf{Explicit Central Difference Scheme}, which avoids the inversion of a global stiffness matrix, enabling massive parallelism:
+
+\begin{equation}
+\mathbf{x}^{(t+\Delta t)} = \mathbf{x}^{(t)} + \dot{\mathbf{x}}^{(t)}\Delta t + \frac{1}{2}\ddot{\mathbf{x}}^{(t)}\Delta t^2
+\end{equation}
+
+The stability is governed by the \textit{Courant-Friedrichs-Lewy} (CFL) condition. In our model, the adaptive damping $K$ (from PNetGimini) effectively modifies the stable time step $\Delta t_{crit}$:
+\begin{equation}
+\Delta t \le \Delta t_{crit} \propto \sqrt{\frac{M}{K_{sys}}} \cdot \frac{1}{f(C)}
+\end{equation}
+This mathematically justifies the \textbf{"Safe Crawling Mode"} when physical environment metrics degrade.
+
+\section{Boundary Coordination via ADMM}
+The update of Lagrangian multipliers $\bm{\lambda}$ (representing boundary pressure) follows the \textit{Alternating Direction Method of Multipliers} (ADMM) logic:
+
+\begin{equation}
+\bm{\lambda}^{(k+1)} = \bm{\lambda}^{(k)} + \rho \sum_{i=1}^{N} \mathbf{B}_i \mathbf{x}_i^{(k+1)}
+\end{equation}
+
+Where $\rho$ is the augmentation parameter. This iterative process ensures that the configuration convergence residual $\epsilon$ satisfies:
+\begin{equation}
+R = \|\sum \mathbf{B}_i \mathbf{x}_i\| < \epsilon
+\end{equation}
+
+\end{document}

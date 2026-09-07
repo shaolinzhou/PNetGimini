@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PNetGimini六场模型——数学-工程框架与实施路线图 v1.2</title>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            background-color: #fff;
+        }
+        h1 {
+            color: #1e3c72;
+            border-bottom: 4px solid #3498db;
+            padding-bottom: 15px;
+            font-size: 28px;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        h2 {
+            color: #2c3e50;
+            border-bottom: 2px solid #bdc3c7;
+            padding-bottom: 8px;
+            margin-top: 40px;
+            font-size: 22px;
+        }
+        h3 {
+            color: #34495e;
+            margin-top: 25px;
+            font-size: 18px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            box-shadow: 0 2px 3px rgba(0,0,0,0.1);
+        }
+        th {
+            background-color: #3498db;
+            color: white;
+            padding: 12px;
+            font-weight: 600;
+            text-align: left;
+        }
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #ddd;
+        }
+        tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+        tr:hover {
+            background-color: #f1f9ff;
+        }
+        .equation-box {
+            background-color: #f8f9fa;
+            border-left: 6px solid #3498db;
+            padding: 20px;
+            margin: 30px 0;
+            border-radius: 0 8px 8px 0;
+            overflow-x: auto;
+            font-size: 16px;
+        }
+        .equation-box-original {
+            background-color: #fff4e6;
+            border-left: 6px solid #e67e22;
+            padding: 20px;
+            margin: 30px 0;
+            border-radius: 0 8px 8px 0;
+            overflow-x: auto;
+        }
+        .equation-box-simplified {
+            background-color: #e6f7ff;
+            border-left: 6px solid #1890ff;
+            padding: 20px;
+            margin: 30px 0;
+            border-radius: 0 8px 8px 0;
+            overflow-x: auto;
+        }
+        .code-block {
+            background-color: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            overflow-x: auto;
+            margin: 20px 0;
+        }
+        .note-box {
+            background-color: #fef9e7;
+            border: 1px solid #f1c40f;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .warning-box {
+            background-color: #fdeded;
+            border-left: 6px solid #e74c3c;
+            padding: 20px;
+            margin: 30px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .success-box {
+            background-color: #d4edda;
+            border-left: 6px solid #28a745;
+            padding: 20px;
+            margin: 30px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        .footer {
+            margin-top: 60px;
+            padding-top: 20px;
+            border-top: 2px solid #bdc3c7;
+            text-align: center;
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+        .version {
+            color: #95a5a6;
+            text-align: right;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+        ul, ol {
+            padding-left: 25px;
+        }
+        li {
+            margin: 8px 0;
+        }
+        .math {
+            font-family: 'Times New Roman', serif;
+            font-size: 18px;
+        }
+        hr {
+            border: 0;
+            height: 1px;
+            background: linear-gradient(to right, transparent, #bdc3c7, transparent);
+            margin: 40px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>PNetGimini六场模型</h1>
+    <h2 style="text-align: center; border-bottom: none; margin-top: -20px;">数学-工程框架与实施路线图</h2>
+    <div class="version">版本：v1.2 | 日期：2024年</div>
+
+    <p style="font-size: 18px; text-align: center; color: #2c3e50;"><strong>核心思想：</strong>将网络部署与运营抽象为六个耦合物理场，用偏微分方程组描述其演化，为网络变更提供可计算的决策依据。</p>
+
+    <hr>
+
+    <h2>第一部分：六场变量的数学定义与工程映射</h2>
+
+    <table>
+        <thead>
+            <tr>
+                <th>场变量</th>
+                <th>符号</th>
+                <th>数学定义</th>
+                <th>工程含义</th>
+                <th>量纲/归一化</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>流量场</strong></td>
+                <td>L(x,t)</td>
+                <td>位置x处的流量密度函数</td>
+                <td>数据平面负载（带宽占用率）</td>
+                <td>0~1 (归一化)</td>
+            </tr>
+            <tr>
+                <td><strong>设备负载场</strong></td>
+                <td>C(x,t)</td>
+                <td>控制平面资源占用率</td>
+                <td>CPU/内存/TCAM使用率</td>
+                <td>0~1 (归一化)</td>
+            </tr>
+            <tr>
+                <td><strong>协议扰动场</strong></td>
+                <td>P(x,t)</td>
+                <td>协议事件强度函数</td>
+                <td>SPF重算频率/BGP更新率</td>
+                <td>events/s 或 0~1</td>
+            </tr>
+            <tr>
+                <td><strong>故障风险场</strong></td>
+                <td>F(x,t)</td>
+                <td>失效概率密度函数</td>
+                <td>节点/链路故障风险概率</td>
+                <td>0~1 (概率)</td>
+            </tr>
+            <tr>
+                <td><strong>收敛稳定场</strong></td>
+                <td>S(x,t)</td>
+                <td>局部收敛状态函数</td>
+                <td>0=震荡中/1=稳态</td>
+                <td>布尔或0~1连续</td>
+            </tr>
+            <tr>
+                <td><strong>健康度场</strong></td>
+                <td>H(x,t)</td>
+                <td>长期可靠性指数</td>
+                <td>设备剩余寿命/健康评分</td>
+                <td>0~1 (健康→1)</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="note-box">
+        <p><strong>核心创新：</strong>将离散的网络设备状态通过插值函数构造为连续场，使偏微分方程工具得以应用。</p>
+    </div>
+
+    <hr>
+
+    <h2>第二部分：六场耦合的偏微分方程组（原始定义版）</h2>
+
+    <p>基于六个场变量之间的物理耦合关系，建立如下控制方程组。此版本为<strong>完整数学定义</strong>，保留所有理论细节，适用于学术研究和理论验证。</p>
+
+    <div class="equation-box-original">
+        <h3>核心方程结构</h3>
+        <p style="font-size: 18px; font-family: 'Times New Roman', serif;">
+            \[
+            \boxed{
+            \begin{aligned}
+            \frac{\partial L}{\partial t} &amp;= \nabla \cdot (\mathbf{D}_L(C,P) \nabla L) - \alpha L + \beta_L(\text{流量注入}) \quad &amp;\text{(1) 流量场 - 二阶PDE} \\
+            \frac{\partial C}{\partial t} &amp;= \gamma_C L - \delta_C C + \nabla \cdot (\mathbf{D}_C \nabla C) + \beta_C(P) \quad &amp;\text{(2) 设备负载场 - 二阶PDE} \\
+            \frac{\partial P}{\partial t} &amp;= \gamma_P \frac{\partial L}{\partial t} - \delta_P P + \nabla \cdot (\mathbf{D}_P \nabla P) + \eta_P(F) \quad &amp;\text{(3) 协议扰动场 - 二阶PDE} \\
+            \frac{\partial F}{\partial t} &amp;= \lambda_F C + \mu_F P - \nu_F F + \nabla \cdot (\mathbf{D}_F \nabla F) + \xi_F(H) \quad &amp;\text{(4) 故障风险场 - 二阶PDE} \\
+            \frac{\partial S}{\partial t} &amp;= -\kappa_S P - \rho_S F + \tau_S (1-S) \cdot \text{sat}(C) \quad &amp;\text{(5) 收敛稳定场 - ODE} \\
+            \frac{\partial H}{\partial t} &amp;= -\omega_H C \cdot H - \phi_H F \cdot H + \theta_H (1-H) \cdot \text{维护因子} \quad &amp;\text{(6) 健康度场 - ODE}
+            \end{aligned}
+            }
+            \]
+        </p>
+    </div>
+
+    <h3>方程项的工程含义</h3>
+
+    <table>
+        <thead>
+            <tr>
+                <th>方程</th>
+                <th>关键项</th>
+                <th>工程含义</th>
+                <th>耦合关系</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>L方程</strong></td>
+                <td>∇·(D_L∇L)</td>
+                <td>流量受设备负载和协议状态影响的路径选择</td>
+                <td>L ↔ C, L ↔ P</td>
+            </tr>
+            <tr>
+                <td><strong>C方程</strong></td>
+                <td>γ_C L</td>
+                <td>流量增加导致控制平面负载上升</td>
+                <td><strong>L → C</strong></td>
+            </tr>
+            <tr>
+                <td><strong>C方程</strong></td>
+                <td>β_C(P)</td>
+                <td>协议扰动（如BGP更新）消耗CPU</td>
+                <td><strong>P → C</strong></td>
+            </tr>
+            <tr>
+                <td><strong>P方程</strong></td>
+                <td>γ_P ∂L/∂t</td>
+                <td>流量变化触发协议重算</td>
+                <td><strong>L → P</strong></td>
+            </tr>
+            <tr>
+                <td><strong>P方程</strong></td>
+                <td>η_P(F)</td>
+                <td>故障事件引发协议震荡</td>
+                <td><strong>F → P</strong></td>
+            </tr>
+            <tr>
+                <td><strong>F方程</strong></td>
+                <td>λ_F C</td>
+                <td>高负载增加故障风险</td>
+                <td><strong>C → F</strong></td>
+            </tr>
+            <tr>
+                <td><strong>F方程</strong></td>
+                <td>μ_F P</td>
+                <td>协议震荡诱发故障</td>
+                <td><strong>P → F</strong></td>
+            </tr>
+            <tr>
+                <td><strong>S方程</strong></td>
+                <td>-κ_S P</td>
+                <td>高扰动降低稳定性</td>
+                <td><strong>P → S</strong></td>
+            </tr>
+            <tr>
+                <td><strong>S方程</strong></td>
+                <td>-ρ_S F</td>
+                <td>故障事件破坏稳定</td>
+                <td><strong>F → S</strong></td>
+            </tr>
+            <tr>
+                <td><strong>H方程</strong></td>
+                <td>-ω_H C·H</td>
+                <td>长期高负载加速老化</td>
+                <td><strong>C → H</strong></td>
+            </tr>
+            <tr>
+                <td><strong>H方程</strong></td>
+                <td>-φ_H F·H</td>
+                <td>频繁故障损伤设备</td>
+                <td><strong>F → H</strong></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <hr>
+
+    <h2>第七部分：六场耦合方程组的工程简化</h2>
+
+    <p>在原始数学模型基础上，针对工程落地的计算效率需求，我们对六场方程组进行系统性简化。简化的核心原则是：</p>
+    <ol>
+        <li><strong>时间尺度分离</strong>：不同场的变化速度差异大，可采用不同计算频率</li>
+        <li><strong>空间传播特性区分</strong>：只在必要场保留空间扩散项</li>
+        <li><strong>单向依赖转为代数计算</strong>：无反馈的场可从其他场直接计算</li>
+        <li><strong>强弱耦合分离</strong>：强耦合场联立求解，弱耦合场顺序求解</li>
+    </ol>
+
+    <h3>7.1 简化分析：为什么可以这样简化？</h3>
+
+    <table>
+        <thead>
+            <tr>
+                <th>场</th>
+                <th>原始类型</th>
+                <th>简化依据</th>
+                <th>简化后类型</th>
+                <th>理由</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>L</strong></td>
+                <td>二阶PDE</td>
+                <td>路由有主导方向，扩散可降阶</td>
+                <td><strong>一阶对流方程</strong></td>
+                <td>流量沿特定路径传播，非各向同性扩散</td>
+            </tr>
+            <tr>
+                <td><strong>C</strong></td>
+                <td>二阶PDE</td>
+                <td>管理平面协调有限</td>
+                <td><strong>本地ODE + 弱扩散</strong></td>
+                <td>多数场景下C是本地状态，保留小扩散作为可选</td>
+            </tr>
+            <tr>
+                <td><strong>P</strong></td>
+                <td>二阶PDE</td>
+                <td>协议事件沿拓扑传播仍需保留</td>
+                <td><strong>二阶PDE（保留）</strong></td>
+                <td>扰动传播是核心机制，必须保留</td>
+            </tr>
+            <tr>
+                <td><strong>F</strong></td>
+                <td>二阶PDE</td>
+                <td>风险级联传播仍需保留</td>
+                <td><strong>二阶PDE（保留）</strong></td>
+                <td>故障传播是核心机制，必须保留</td>
+            </tr>
+            <tr>
+                <td><strong>S</strong></td>
+                <td>ODE</td>
+                <td>无反馈，可代数计算</td>
+                <td><strong>代数方程</strong></td>
+                <td>S是P、F、L的函数，无独立动态</td>
+            </tr>
+            <tr>
+                <td><strong>H</strong></td>
+                <td>ODE</td>
+                <td>变化极慢</td>
+                <td><strong>积分ODE（低频更新）</strong></td>
+                <td>按日/周更新，不参与实时计算</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3>7.2 推荐工程简化版本</h3>
+
+    <div class="equation-box-simplified">
+        <p style="font-size: 18px; font-family: 'Times New Roman', serif;">
+            \[
+            \boxed{
+            \begin{aligned}
+            \frac{\partial L}{\partial t} + \mathbf{v}(C,P) \cdot \nabla L &amp;= -\alpha L + \beta_L + \epsilon \nabla^2 L \quad &amp;\text{(1) 流量场 - 一阶对流为主} \\
+            \frac{\partial C}{\partial t} &amp;= \gamma_C L - \delta_C C + \beta_C(P) + \kappa \nabla^2 C \quad &amp;\text{(2) 设备负载场 - ODE + 弱扩散} \\
+            \frac{\partial P}{\partial t} &amp;= \gamma_P \left|\frac{\partial L}{\partial t}\right| - \delta_P P + \nabla \cdot (\mathbf{D}_P \nabla P) + \eta_P(F) \quad &amp;\text{(3) 协议扰动场 - 二阶PDE（保留）} \\
+            \frac{\partial F}{\partial t} &amp;= \lambda_F C + \mu_F P - \nu_F F + \nabla \cdot (\mathbf{D}_F \nabla F) + \xi_F(H) \quad &amp;\text{(4) 故障风险场 - 二阶PDE（保留）} \\
+            S &amp;= 1 - \tanh(a P + b F + c |\nabla L|) \quad &amp;\text{(5) 收敛稳定场 - 代数方程} \\
+            \frac{dH}{dt} &amp;= -\omega C H - \phi \sum_{\text{fault}} \delta(t-t_i) H + \theta(1-H) \cdot M(t) \quad &amp;\text{(6) 健康度场 - ODE（低频更新）}
+            \end{aligned}
+            }
+            \]
+        </p>
+    </div>
+
+    <h3>7.5 多时间尺度求解策略</h3>
+
+    <p>基于简化版本，建议采用<strong>分层时间推进</strong>：</p>
+
+    <table>
+        <thead>
+            <tr>
+                <th>层</th>
+                <th>场</th>
+                <th>更新频率</th>
+                <th>求解方法</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>实时层（秒级）</strong></td>
+                <td>L, C</td>
+                <td>高频（1-5秒）</td>
+                <td>简化对流方程 + 本地ODE</td>
+            </tr>
+            <tr>
+                <td><strong>事件层（秒~分）</strong></td>
+                <td>P, F</td>
+                <td>事件触发 + 定期</td>
+                <td>二阶PDE（只在活跃区域）</td>
+            </tr>
+            <tr>
+                <td><strong>查询层（分~时）</strong></td>
+                <td>S</td>
+                <td>变更前按需计算</td>
+                <td>代数函数</td>
+            </tr>
+            <tr>
+                <td><strong>规划层（天~月）</strong></td>
+                <td>H</td>
+                <td>每日/每周</td>
+                <td>积分ODE</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <hr>
+
+    <h2>第三部分：区域分解的数学实现</h2>
+
+    <p>针对超大规模网络，采用区域分解法（DDM）实现并行计算：</p>
+
+    <h3>3.1 区域分解定义</h3>
+    <p>将全网 \(\Omega\) 分解为 \(N\) 个子域 \(\Omega = \Omega_1 \cup \Omega_2 \cup ... \cup \Omega_N\)，交界为 \(\Gamma_{ij} = \Omega_i \cap \Omega_j\)。</p>
+
+    <h3>3.2 区域内独立更新</h3>
+    <p>在每个子域 \(\Omega_i\) 内独立求解六场耦合方程组：</p>
+    <div class="equation-box">
+        \[\frac{\partial \mathbf{U}_i}{\partial t} = \mathcal{F}_i(\mathbf{U}_i) \quad \text{in } \Omega_i\]
+    </div>
+    <p>其中 \(\mathbf{U}_i = [L_i, C_i, P_i, F_i, S_i, H_i]^T\)。</p>
+
+    <h3>3.3 区域间耦合条件</h3>
+    <p>在交界面 \(\Gamma_{ij}\) 上满足：</p>
+    <ol>
+        <li><strong>连续性条件</strong>（场变量一致）：
+            <div class="equation-box">\[\mathbf{U}_i = \mathbf{U}_j \quad \text{on } \Gamma_{ij}\]</div>
+        </li>
+        <li><strong>通量平衡条件</strong>（流量/扰动传输守恒）：
+            <div class="equation-box">\[\mathbf{D}_i \nabla \mathbf{U}_i \cdot \mathbf{n}_i + \mathbf{D}_j \nabla \mathbf{U}_j \cdot \mathbf{n}_j = 0 \quad \text{on } \Gamma_{ij}\]</div>
+        </li>
+    </ol>
+
+    <hr>
+
+    <h2>第四部分：输入文件格式设计</h2>
+
+    <h3>4.1 节点段 (<code>#NODE</code>)</h3>
+    <div class="code-block">
+#NODE
+ID, x, y, z, L_init, C_init, P_init, F_init, S_init, H_init, type
+R1-SW01, 10.0, 20.0, 0.0, 0.3, 0.4, 0.1, 0.05, 1.0, 0.95, "border-gw"
+R1-SW02, 12.5, 22.0, 0.0, 0.2, 0.3, 0.05, 0.02, 1.0, 0.98, "core"
+    </div>
+
+    <h3>4.2 链路段 (<code>#LINK</code> - 对应材料属性)</h3>
+    <div class="code-block">
+#LINK
+ID, node1, node2, D_L, D_C, D_P, D_F, bandwidth, latency, reliability
+LNK001, R1-SW01, R1-SW02, 0.8, 0.1, 0.5, 0.3, 10G, 2ms, 0.9999
+    </div>
+
+    <hr>
+
+    <h2>第五部分：模型的真实边界——能做与不能做</h2>
+
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 50%; background-color: #27ae60;">能做到</th>
+                <th style="width: 50%; background-color: #e74c3c;">做不到</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>连续状态场的演化预测</td>
+                <td>协议级别的精确行为仿真</td>
+            </tr>
+            <tr>
+                <td>风险的空间分布可视化</td>
+                <td>具体配置命令的生成</td>
+            </tr>
+            <tr>
+                <td>"推A前先推B"的定量依据</td>
+                <td>100%准确的故障预测</td>
+            </tr>
+            <tr>
+                <td>回滚与继续的定量对比</td>
+                <td>业务层SLA的直接映射</td>
+            </tr>
+            <tr>
+                <td>并发度的实时计算建议</td>
+                <td>人的判断和责任</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <hr>
+
+    <h2>第六部分：实施路线图</h2>
+
+    <h3>阶段一：数学验证（2-3个月）</h3>
+    <ul>
+        <li>用简单拓扑（如3x3网格）实现六场PDE数值求解</li>
+        <li>进行参数敏感性分析，识别关键耦合系数</li>
+        <li>验证各耦合箭头的方向性与量级合理性</li>
+    </ul>
+
+    <h3>阶段二：小规模网络仿真（3-4个月）</h3>
+    <ul>
+        <li>接入真实网络监控数据作为边界条件</li>
+        <li>实现数据同化模块，用实时数据更新场状态</li>
+        <li>对标验证模型预测与实际告警</li>
+    </ul>
+
+    <h3>阶段三：区域分解并行化（4-6个月）</h3>
+    <ul>
+        <li>按AS或POD划分区域，实现分布式求解</li>
+        <li>实现区域间通信与边界条件同步</li>
+        <li>验证并行效率与扩展性</li>
+    </ul>
+
+    <h3>阶段四：决策接口集成（6-8个月）</h3>
+    <ul>
+        <li>开发"场状态→变更顺序"转换算法</li>
+        <li>实现"S场驱动的安全并发度"实时计算</li>
+        <li>可视化风险热力图和稳定场演化动画</li>
+    </ul>
+
+    <div class="success-box">
+        <p><strong>PNetGimini六场模型的定位：</strong></p>
+        <p>它是一个决策辅助的物理场计算引擎，把工程师的经验判断转化为可计算的场量，输出"有数学依据的建议"，而不是替代工程师做决策。</p>
+    </div>
+
+    <div class="footer">
+        <p>由 OpenClaw AI 助手生成 • PNetGimini六场模型 v1.2</p>
+    </div>
+</body>
+</html>

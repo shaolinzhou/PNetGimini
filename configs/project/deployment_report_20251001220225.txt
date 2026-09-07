@@ -1,0 +1,239 @@
+--- Network Automation Deployment Report (2025-10-01 22:02:25.162818) ---
+
+### Device 1 Report: 192.168.239.134:30003:admin:***:cisco_ios_telnet ###
+Status: CONFIGURED
+
+--- Command Execution Details ---
+
+Category: config
+Status: SUCCESS
+Commands Sent:
+  - hostname Malmo
+  - ip dhcp pool Malmo
+  - network 192.168.3.0 255.255.255.0
+  - default-router 192.168.3.1
+  - dns-server 192.168.1.254
+  - interface e0/0
+  - ip address 192.168.3.1 255.255.255.0
+  - speed 100
+  - duplex full
+  - no shutdown
+  - interface Serial1/0
+  - ip address 10.10.10.10 255.255.255.252
+  - lock rate 64000
+  - no shutdown
+  - ip route 0.0.0.0 0.0.0.0 10.10.10.9
+
+Device Output:
+
+Router(config)#
+Router(config)#
+Router(config)#hostname Malmo
+Malmo(config)#
+Malmo(config)#ip dhcp pool Malmo
+Malmo(dhcp-config)#
+Malmo(dhcp-config)#network 192.168.3.0 255.255.255.0
+Malmo(dhcp-config)#
+Malmo(dhcp-config)#default-router 192.168.3.1
+Malmo(dhcp-config)#
+Malmo(dhcp-config)#dns-server 192.168.1.254
+Malmo(dhcp-config)#
+Malmo(dhcp-config)#interface e0/0
+Malmo(config-if)#
+Malmo(config-if)#ip address 192.168.3.1 255.255.255.0
+Malmo(config-if)#
+Malmo(config-if)#speed 100
+                  ^
+% Invalid input detected at '^' marker.
+
+Malmo(config-if)#
+Malmo(config-if)#duplex full
+Malmo(config-if)#
+Malmo(config-if)#no shutdown
+Malmo(config-if)#
+Malmo(config-if)#interface Serial1/0
+Malmo(config-if)#
+Malmo(config-if)#ip address 10.10.10.10 255.255.255.252
+Malmo(config-if)#
+Malmo(config-if)#lock rate 64000
+                    ^
+% Invalid input detected at '^' marker.
+
+Malmo(config-if)#
+Malmo(config-if)#no shutdown
+Malmo(config-if)#
+Malmo(config-if)#ip route 0.0.0.0 0.0.0.0 10.10.10.9
+Malmo(config)#
+Malmo(config)#
+Malmo(config)#end
+Malmo#
+----------------------------------------
+
+### Device 2 Report: 192.168.239.134:30001:admin:***:cisco_ios_telnet ###
+Status: CONFIGURED
+
+--- Command Execution Details ---
+
+Category: config
+Status: SUCCESS
+Commands Sent:
+  - hostname Stockholm
+  - ip dhcp pool Stockholm
+  - network 192.168.10.0 255.255.255.0
+  - default-router 192.168.10.1
+  - dns-server 192.168.10.254
+  - domain-name firma.se
+  - interface E0/0
+  - ip address 192.168.10.1 255.255.255.0
+  - speed 100
+  - duplex full
+  - no shutdown
+  - interface Serial1/0
+  - ip address 10.0.12.1 255.255.255.252
+  - no shutdown
+  - interface Serial1/1
+  - ip address 10.0.13.1 255.255.255.252
+  - no shutdown
+  - router rip
+  - version 2
+  - network 192.168.10.0
+  - default-information originate
+  - no auto-summary
+  - ip route 192.168.20.0 255.255.255.0 10.0.12.2
+  - ip route 192.168.30.0 255.255.255.0 10.0.13.2
+
+Device Output:
+
+Router(config)#
+Router(config)#
+Router(config)#hostname Stockholm
+Stockholm(config)#
+Stockholm(config)#ip dhcp pool Stockholm
+Stockholm(dhcp-config)#
+Stockholm(dhcp-config)#network 192.168.10.0 255.255.255.0
+Stockholm(dhcp-config)#
+Stockholm(dhcp-config)#default-router 192.168.10.1
+Stockholm(dhcp-config)#
+Stockholm(dhcp-config)#dns-server 192.168.10.254
+Stockholm(dhcp-config)#
+Stockholm(dhcp-config)#domain-name firma.se
+Stockholm(dhcp-config)#
+Stockholm(dhcp-config)#interface E0/0
+Stockholm(config-if)#
+Stockholm(config-if)#ip address 192.168.10.1 255.255.255.0
+Stockholm(config-if)#
+Stockholm(config-if)#speed 100
+                      ^
+% Invalid input detected at '^' marker.
+
+Stockholm(config-if)#
+Stockholm(config-if)#duplex full
+Stockholm(config-if)#
+Stockholm(config-if)#no shutdown
+Stockholm(config-if)#
+Stockholm(config-if)#interface Serial1/0
+Stockholm(config-if)#
+Stockholm(config-if)#ip address 10.0.12.1 255.255.255.252
+Stockholm(config-if)#
+Stockholm(config-if)#no shutdown
+Stockholm(config-if)#
+Stockholm(config-if)#interface Serial1/1
+Stockholm(config-if)#
+Stockholm(config-if)#ip address 10.0.13.1 255.255.255.252
+Stockholm(config-if)#
+Stockholm(config-if)#no shutdown
+Stockholm(config-if)#
+Stockholm(config-if)#router rip
+Stockholm(config-router)#
+Stockholm(config-router)#version 2
+Stockholm(config-router)#
+Stockholm(config-router)#network 192.168.10.0
+Stockholm(config-router)#
+Stockholm(config-router)#default-information originate
+Stockholm(config-router)#
+Stockholm(config-router)#no auto-summary
+Stockholm(config-router)#
+Stockholm(config-router)#ip route 192.168.20.0 255.255.255.0 10.0.12.2
+Stockholm(config)#
+Stockholm(config)#ip route 192.168.30.0 255.255.255.0 10.0.13.2
+Stockholm(config)#
+Stockholm(config)#
+Stockholm(config)#end
+Stockholm#
+----------------------------------------
+
+### Device 3 Report: 192.168.239.134:30002:admin:***:cisco_ios_telnet ###
+Status: CONFIGURED
+
+--- Command Execution Details ---
+
+Category: config
+Status: SUCCESS
+Commands Sent:
+  - hostname Goteboer
+  - ip dhcp pool Goteboer
+  - network 192.168.2.0 255.255.255.0
+  - default-router 192.168.2.1
+  - dns-server 192.168.1.254
+  - interface e0/0
+  - ip address 192.168.2.1 255.255.255.0
+  - speed 100
+  - duplex full
+  - no shutdown
+  - interface Serial1/0
+  - ip address 10.10.10.2 255.255.255.252
+  - lock rate 64000
+  - no shutdown
+  - no shutdown
+  - ip classless
+  - ip route 0.0.0.0 0.0.0.0 10.10.10.1
+  - end
+
+Device Output:
+
+Router(config)#
+Router(config)#
+Router(config)#hostname Goteboer
+Goteboer(config)#
+Goteboer(config)#ip dhcp pool Goteboer
+Goteboer(dhcp-config)#
+Goteboer(dhcp-config)#network 192.168.2.0 255.255.255.0
+Goteboer(dhcp-config)#
+Goteboer(dhcp-config)#default-router 192.168.2.1
+Goteboer(dhcp-config)#
+Goteboer(dhcp-config)#dns-server 192.168.1.254
+Goteboer(dhcp-config)#
+Goteboer(dhcp-config)#interface e0/0
+Goteboer(config-if)#
+Goteboer(config-if)#ip address 192.168.2.1 255.255.255.0
+Goteboer(config-if)#
+Goteboer(config-if)#speed 100
+                     ^
+% Invalid input detected at '^' marker.
+
+Goteboer(config-if)#
+Goteboer(config-if)#duplex full
+Goteboer(config-if)#
+Goteboer(config-if)#no shutdown
+Goteboer(config-if)#
+Goteboer(config-if)#interface Serial1/0
+Goteboer(config-if)#
+Goteboer(config-if)#ip address 10.10.10.2 255.255.255.252
+Goteboer(config-if)#
+Goteboer(config-if)#lock rate 64000
+                       ^
+% Invalid input detected at '^' marker.
+
+Goteboer(config-if)#
+Goteboer(config-if)#no shutdown
+Goteboer(config-if)#
+Goteboer(config-if)#no shutdown
+Goteboer(config-if)#
+Goteboer(config-if)#ip classless
+Goteboer(config)#
+Goteboer(config)#ip route 0.0.0.0 0.0.0.0 10.10.10.1
+Goteboer(config)#
+Goteboer(config)#end
+Goteboer#
+----------------------------------------
+

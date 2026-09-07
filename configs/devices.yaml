@@ -1,0 +1,276 @@
+devices:
+  - ip: 10.48.80.40
+    port: 30007
+    username: admin
+    password: admin
+    device_type: cisco_ios_telnet
+    commands:
+      config:
+        - hostname SW4
+        - interface e0/1
+        - switchport access vlan 50
+        - interface e0/2
+        - switchport access vlan 50
+        - interface e0/3
+        - switchport trunk encapsulation dot1q
+        - switchport mode trunk
+        - no shutdown
+        - interface vlan1
+        - no ip address
+        - shutdown
+  - ip: 10.48.80.40
+    port: 30020
+    username: admin
+    password: admin
+    device_type: cisco_ios_telnet
+    commands:
+      config:
+        - hostname M-SW1
+        - vlan 30
+        - name vlan30
+        - vlan 40
+        - name vlan40      
+        - ip dhcp excluded-address 192.168.30.254
+        - ip dhcp excluded-address 192.168.40.254
+        - ip dhcp pool vlan30
+        - network 192.168.30.0 255.255.255.0
+        - default-router 192.168.30.254
+        - dns-server 192.168.50.1
+        - ip dhcp pool vlan40
+        - network 192.168.40.0 255.255.255.0
+        - default-router 192.168.40.254
+        - dns-server 192.168.50.1
+        - ip routing
+        - interface Gi0/3
+        - no switchport
+        - ip address 192.168.2.1 255.255.255.252
+        - duplex auto
+        - interface vlan1
+        - no ip address
+        - shutdown
+        - interface vlan30
+        - ip address 192.168.30.254 255.255.255.0
+        - no shutdown
+        - interface vlan40
+        - ip address 192.168.40.254 255.255.255.0
+        - no shutdown
+        - router rip
+        - version 2
+        - network 192.168.2.0
+        - network 192.168.30.0
+        - network 192.168.40.0
+        - no auto-summary
+        - ip classless
+        - ip route 0.0.0.0 0.0.0.0 192.168.2.2
+  - ip: 10.48.80.40
+    port: 30021
+    username: admin
+    password: admin
+    device_type: cisco_ios_telnet
+    commands:
+      config:
+        - hostname M-SW2
+        - vlan 50
+        - name vlan50
+        - interface vlan50
+        - ip address 192.168.50.254 255.255.255.0
+        - no shutdown
+        - interface Gi0/1
+        - no switchport
+        - ip address 192.168.1.2 255.255.255.252
+        - no shutdown
+        - interface Gi0/2
+        - no switchport
+        - ip address 192.168.2.2 255.255.255.252
+        - no shutdown
+        - interface Gi0/0
+        - no switchport
+        - ip address 192.168.3.1 255.255.255.252
+        - no shutdown
+        - no shutdown        
+        - interface vlan1
+        - no ip address
+        - shutdown
+        - interface vlan50
+        - mac-address 0040.0b82.8a01
+        - ip address 192.168.50.254 255.255.255.0
+        - router rip
+        - version 2
+        - network 192.168.1.0
+        - network 192.168.2.0
+        - network 192.168.3.0
+        - network 192.168.50.0
+        - no auto-summary
+        - ip classless
+        - ip route 0.0.0.0 0.0.0.0 192.168.3.2
+  - ip: 10.48.80.40
+    port: 30019
+    username: admin
+    password: admin
+    device_type: cisco_ios_telnet
+    commands:
+      config:
+        - hostname M-SW0
+        - vlan 10
+        - name vlan10
+        - vlan 20
+        - name vlan20
+        - interface vlan10
+        - ip address 192.168.10.254 255.255.255.0
+        - no shutdown
+        - interface vlan20
+        - ip address 192.168.20.254 255.255.255.0
+        - no shutdown
+        - ip dhcp excluded-address 192.168.10.254
+        - ip dhcp excluded-address 192.168.20.254
+        - ip dhcp pool vlan10
+        - network 192.168.10.0 255.255.255.0
+        - default-router 192.168.10.254
+        - dns-server 192.168.50.1
+        - exit
+        - ip dhcp pool vlan20
+        - network 192.168.20.0 255.255.255.0
+        - default-router 192.168.20.254
+        - dns-server 192.168.50.1
+        - exit 
+        - ip routing
+        - interface Gi0/1
+        - switchport trunk encapsulation dot1q
+        - switchport mode trunk
+        - no shutdown
+        - interface Gi0/3
+        - no switchport
+        - ip address 192.168.1.1 255.255.255.252
+        - duplex auto
+        - router rip
+        - version 2
+        - network 192.168.1.0
+        - network 192.168.10.0
+        - network 192.168.20.0
+        - no auto-summary
+        - ip classless
+        - ip route 0.0.0.0 0.0.0.0 192.168.1.2
+  - ip: 10.48.80.40
+    port: 30001
+    username: admin
+    password: admin
+    device_type: cisco_ios_telnet
+    commands:
+      config:
+        - hostname R0
+        - interface e0/0
+        - ip address 192.168.3.2 255.255.255.252
+        - no shutdown
+        - interface S1/0
+        - ip address 200.1.1.1 255.255.255.252
+        - no shutdown
+        - router rip
+        - version 2
+        - network 192.168.3.0
+        - network 200.1.1.0
+        - no auto-summary
+        - exit
+        - interface e0/0
+        - ip nat inside
+        - interface S1/0
+        - ip nat outside 
+        - exit
+        - ip nat pool napt-pool 200.1.1.1 200.1.1.1 netmask 255.255.255.252
+        - ip route 0.0.0.0 0.0.0.0 200.1.1.2
+        - ip flow-export version 9
+        - access-list 1 permit 192.168.10.0 0.0.0.255
+        - access-list 1 permit 192.168.20.0 0.0.0.255
+        - access-list 1 permit 192.168.30.0 0.0.0.255
+        - access-list 1 permit 192.168.40.0 0.0.0.255
+        - ip nat inside source list 1 pool napt-pool overload
+        - no cdp run
+  - ip: 10.48.80.40
+    port: 30002
+    username: admin
+    password: admin
+    device_type: cisco_ios_telnet
+    commands:
+      config:
+        - hostname R1
+        - interface e0/0
+        - ip address 8.8.8.1 255.255.255.0
+        - no shutdown
+        - interface S1/0
+        - ip address 200.1.1.2 255.255.255.252
+        - no shutdown 
+  - ip: 10.48.80.40
+    port: 30003
+    username: admin
+    password: admin
+    device_type: cisco_ios_telnet
+    commands:
+      config:
+        - hostname SW0
+        - vlan 10
+        - name vlan10
+        - interface e0/1
+        - switchport access vlan 10
+        - interface e0/2
+        - switchport access vlan 10
+        - interface e0/3
+        - switchport trunk encapsulation dot1q
+        - switchport mode trunk
+        - no shutdown
+        - end
+  - ip: 10.48.80.40
+    port: 30004
+    username: admin
+    password: admin
+    device_type: cisco_ios_telnet
+    commands:
+      config:
+        - hostname SW1
+        - vlan 20
+        - name vlan20
+        - interface e0/1
+        - switchport access vlan 20
+        - interface e0/2
+        - switchport access vlan 20
+        - interface e0/3
+        - switchport trunk encapsulation dot1q
+        - switchport mode trunk
+        - no shutdown
+        - end
+  - ip: 10.48.80.40
+    port: 30005
+    username: admin
+    password: admin
+    device_type: cisco_ios_telnet
+    commands:
+      config:
+        - hostname SW2
+        - vlan 30
+        - name vlan30
+        - interface e0/1
+        - switchport access vlan 30
+        - interface e0/2
+        - switchport access vlan 30
+        - interface e0/3
+        - switchport trunk encapsulation dot1q
+        - switchport mode trunk
+        - no shutdown
+        - end  
+  - ip: 10.48.80.40
+    port: 30006
+    username: admin
+    password: admin
+    device_type: cisco_ios_telnet
+    commands:
+      config:
+        - hostname SW3
+        - vlan 40
+        - name vlan40
+        - interface e0/1
+        - switchport access vlan 40
+        - interface e0/2
+        - switchport access vlan 40
+        - interface e0/3
+        - switchport trunk encapsulation dot1q
+        - switchport mode trunk
+        - no shutdown
+        - end
