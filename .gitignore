@@ -57,3 +57,6 @@ config_to_yamlv1.py
 
 # Configs project directory (exclude all files)
 configs/project/*
+configs/1/*
+configs/2/*
+configs/3/*
