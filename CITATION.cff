@@ -2,7 +2,7 @@ cff-version: 1.2.0
 message: "If you use this software, please cite it as below."
 type: software
 title: "PNetGimini: Provisioning Network Gemini System"
-abstract: "An enterprise-grade high-concurrency network automation deployment system. Deploys configurations to multi-vendor network devices via SSH/Telnet with automatic backup, intelligent diff rollback, and structured audit reporting."
+abstract: "A high-concurrency, asynchronous network configuration deployment engine designed for virtual and enterprise topologies. Decouples and orchestrates structured configurations to multi-vendor devices (Cisco/Huawei) via SSH/Telnet, featuring automated pre-change snapshots, surgical diff-based rollback, and structured audit reporting."
 authors:
   - family-names: "Zhou"
     given-names: "Shaolin"
