@@ -9,23 +9,29 @@ This directory contains the automated test suite for validating **PNetGimini**'s
 ```
 tests/
 ├── README.md              # Test documentation (this file)
-└── test_core.py           # Core unit tests (Adapters, Diff Rollback, Async Engine)
+├── test_core.py           # Core unit tests (Adapters, Diff Rollback, Async Engine)
+└── test_full_pipeline.py  # End-to-end integration tests (Parser, Reporter, Self-healing, Recovery)
 ```
 
 ### Coverage Areas:
-1. **`TestAdapters`**:
+1. **`TestAdapters` (in `test_core.py`)**:
    - Tests `AdapterFactory` vendor resolution (`cisco_ios_telnet`, `cisco_ios_ssh`, `huawei_router_telnet`, `huawei_router_ssh`).
    - Validates pagination command output (`terminal length 0` vs `screen-length 0 temporary`).
    - Validates snapshot commands and negation prefixes (`no ` vs `undo `).
    - Validates comment and header cleaning (`clean_raw_config`) for Cisco and Huawei configs.
-2. **`TestDiffRollback`**:
+2. **`TestDiffRollback` (in `test_core.py`)**:
    - Validates precision reversal patch generation for newly introduced process blocks (e.g. `router ospf 1` -> `no router ospf 1`).
    - Validates interface attribute restoration (reverting IP addresses, resetting `shutdown` state).
    - Validates Huawei native syntax reversal (`undo ospf 1`, `undo ip address`, `shutdown`, `quit`).
-3. **`TestAsyncEngine`**:
+3. **`TestAsyncEngine` (in `test_core.py`)**:
    - Validates `AsyncDeploymentEngine` coroutine scheduling.
    - Tests semaphore concurrency limiting.
-   - Mocks physical transport calls via `unittest.mock.patch` to guarantee fast, zero-dependency offline test runs.
+4. **`TestConfigParser` & `TestResultHandler` (in `test_full_pipeline.py`)**:
+   - Validates YAML parsing, required field validation, and `verify` command blocks.
+   - Validates structured JSON summary calculation and consolidated TXT report formatting.
+5. **`TestDeviceManagerExecution` & `TestConfigToYamlTool` (in `test_full_pipeline.py`)**:
+   - Validates end-to-end self-healing when commands fail, triggering `ConfigDiffEngine`.
+   - Validates reverse engineering snapshot parsing and recovery generation.
 
 ---
 

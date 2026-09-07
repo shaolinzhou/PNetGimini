@@ -112,14 +112,14 @@ class DeviceManager:
                 try:
                     if category == "config":
                         self.logger.info(f"Deploying configuration set ({len(commands)} commands)...")
+                        # Track commands intended/attempted for precision diff rollback in case of failure
+                        deployed_config_commands.extend(commands)
                         output = net_connect.send_config_set(
                             commands, 
                             delay_factor=2, 
                             read_timeout=30, 
                             cmd_verify=False
                         )
-                        # Track commands for precision diff rollback
-                        deployed_config_commands.extend(commands)
                         self.logger.info(output)
 
                     elif category == "show":

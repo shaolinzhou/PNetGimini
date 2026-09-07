@@ -300,7 +300,8 @@ devices:
 
 | Version | Changes |
 |---------|---------|
-| v2.1 | High-concurrency Asyncio engine, Diff-based precision rollback, multi-vendor adapter layer, structured snapshot management |
+| v3.0 | Major Milestone Release: Asyncio high-concurrency engine, Diff-based precision rollback, multi-vendor adapters (Cisco/Huawei), full integration test suite, structured snapshot lifecycle |
+| v2.1 | Pre-release architecture upgrade (Asyncio engine & diff rollback development) |
 | v2.0.1 | Zenodo integration, citation metadata (CITATION.cff, .zenodo.json), documentation enhancements |
 | v2.0 | First official release with YAML config, multi-threading, backup/rollback, and reports |
 | v1.6 | Fixed report output file overwrite bug |
@@ -313,7 +314,7 @@ devices:
 
 ## Roadmap
 
-### Current (v2.1)
+### Current (v3.0)
 
 - ✅ YAML-based configuration & reverse recovery tool
 - ✅ High-concurrency Asyncio coroutine engine (`AsyncDeploymentEngine`)
@@ -321,7 +322,7 @@ devices:
 - ✅ Intelligent diff-based precision rollback (`ConfigDiffEngine`)
 - ✅ Multi-vendor driver adapters (`CiscoAdapter`, `HuaweiAdapter`)
 - ✅ Structured pre-change snapshot lifecycle (`configs/snapshots/`)
-- ✅ Automated offline unit testing suite (`tests/test_core.py`)
+- ✅ Automated offline unit & integration test suites (`tests/`)
 - ✅ Dual-format audit reports (JSON + TXT)
 - ✅ Real-time terminal output
 - ✅ Network topology simulation support (Cisco Packet Tracer)
@@ -363,7 +364,7 @@ If you use this software in your research, please cite it as:
   title        = {PNetGimini: Provisioning Network Gemini System},
   year         = {2026},
   publisher    = {Zenodo},
-  version      = {2.1},
+  version      = {3.0},
   doi          = {10.5281/zenodo.22649486},
   url          = {https://github.com/shaolinzhou/PNetGimini}
 }
