@@ -333,19 +333,9 @@ devices:
 - ✅ Real-time terminal output
 - ✅ Network topology simulation support (Cisco Packet Tracer)
 
-### Future Roadmap & EVE IaC Integration
+### Future Roadmap
 
-PNetGimini is architected to operate within modern Network Infrastructure as Code (IaC) and network digital twin ecosystems. In alignment with **EVE IaC**'s strict separation of concerns (*"Git owns intent, EVE IaC plans and reconciles, EVE-NG executes, Automation tools operate the lab"*), PNetGimini is positioned as a first-class Day-1 and Day-2 operational automation provider for EVE IaC:
-
-- **Official EVE IaC Python SDK Integration** (`eveiac`) — Standardized integration mapping operational requirements directly to the [EVE IaC Python SDK](https://eve-iac.io/developers/python/api/):
-  - **Dynamic Lab Inventory Discovery** (`list_project_consoles`) — Automatically discover active target nodes, console hosts, Telnet/SSH ports, and platform types directly from running labs without static YAML definitions.
-  - **Console Prompt Readiness Synchronization** (`wait_console`) — Server-side regex prompt detection to eliminate boot-time race conditions and Netmiko timeouts during QEMU/IOL node initialization.
-  - **Digital Twin Chaos & Convergence Testing** (`set_link_suspend`, `apply_link_quality`) — Dynamically inject link flaps, delay, and packet degradation to rigorously test OSPF/BGP failover and route convergence speed.
-  - **Dual-Tier Resilience Handshake** — Intra-node surgical diff rollback for quick self-healing coupled with infrastructure-level lifecycle recovery fallback.
-- **Pre/Post-Deployment Health Gate** — Automated synthetic route convergence, latency assertions, and BGP/OSPF neighbor state checks via TextFSM structured telemetry.
-- **Multi-Vendor Expansion** — Native driver adapters for H3C Comware and Arista EOS (session-config).
-- **Model-Driven Automation** — NETCONF/YANG Candidate Datastore transactions and gNMI streaming telemetry.
-- **GitOps CI/CD Automation** — Seamless integration with GitHub Actions / GitLab CI for automated lab testing before production deployment.
+- **EVE IaC Integration** — Integration with [EVE IaC](https://eve-iac.io/) via the official Python SDK (`eveiac`) to operate as a Day-1 and Day-2 operational automation provider for virtual labs and network digital twins.
 
 ## Contributing
 
