@@ -100,10 +100,10 @@ flowchart TD
     end
 ```
 
-> **Legend / 图例说明**：
-> - 🟩 **Solid Green (实线绿色)**：**Currently Implemented & Production-Ready** (v3.1 Baseline, 25/25 Tests Passing)
-> - 🟨 **Solid Gold (实线金黄)**：**Decision & Control Flow Gate** (Engine Selector / Syntax & Ping Verification)
-> - 🟦 **Dashed Blue (虚线蓝色)**：**Planned EVE IaC & Digital Twin Integrations** (Roadmap Architecture)
+> **Legend**:
+> - 🟩 **Solid Green**: **Currently Implemented & Production-Ready** (v3.1 Baseline, 25/25 Tests Passing)
+> - 🟨 **Solid Gold**: **Decision & Control Flow Gate** (Engine Selector / Syntax & Ping Verification)
+> - 🟦 **Dashed Blue**: **Planned EVE IaC & Digital Twin Integrations** (Roadmap Architecture)
 
 ## Architecture
 
