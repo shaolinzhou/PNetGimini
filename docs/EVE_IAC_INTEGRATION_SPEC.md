@@ -255,7 +255,20 @@ Spine-01:
 
 ## 5. End-to-End Orchestration & Chaos Convergence Workflows
 
+### 5.1 Chronological Interaction Sequence
+
 ```mermaid
+%%{init: {
+  'themeVariables': {
+    'fontSize': '17px',
+    'actorFontSize': '18px',
+    'actorFontWeight': 'bold',
+    'messageFontSize': '16px',
+    'messageFontWeight': 'bold',
+    'noteFontSize': '16px',
+    'noteFontWeight': 'bold'
+  }
+}}%%
 sequenceDiagram
     autonumber
     actor Admin as NetDevOps Engineer (Git Push)
@@ -264,32 +277,66 @@ sequenceDiagram
     participant Nodes as Virtual Lab Nodes (QEMU/IOL)
 
     Admin->>EVEIaC: 1. Push Desired Topology (YAML) -> Reconcile & Boot
-    Engine->>EVEIaC: 2. list_project_consoles(lab)
+    Engine->>EVEIaC: 2. POST /api/v1/projects/consoles (list_project_consoles)
     EVEIaC-->>Engine: Returns live node endpoints (host, port, protocol)
-    Engine->>EVEIaC: 3. wait_console(lab, node, pattern=Prompt)
+    Engine->>EVEIaC: 3. POST /api/v1/console/wait (wait_console prompt ready)
     EVEIaC-->>Engine: Console prompt ready confirmation
     
-    rect rgb(240, 255, 240)
-    note over Engine, Nodes: Phase A: In-Guest Provisioning & Health Gate
+    Note over Engine, Nodes: Phase A: In-Guest Provisioning & Declarative Health Gate
     Engine->>Nodes: 4. Capture baseline running snapshot (.conf)
     Engine->>Nodes: 5. High-concurrency Asyncio config push
     Engine->>Nodes: 6. Execute "show" telemetry commands
-    Engine->>Engine: 7. TextFSM parse & assert OSPF/BGP/Ping SLA
-    end
-
-    alt Assertion Failure Detected
-        Engine->>Nodes: 8a. ConfigDiffEngine applies surgical reversal patch
-    else All Health Gates Pass
-        rect rgb(255, 248, 240)
-        note over Engine, EVEIaC: Phase B: Digital Twin Chaos Testing
-        Engine->>EVEIaC: 8b. set_link_suspend(link="L1", suspended=True)
-        Note over EVEIaC: EVE IaC isolates primary path
+    Engine->>Engine: 7. TextFSM parse & assert OSPF / BGP / Ping SLA
+    
+    alt Assertion Failure Detected (Gate Violated)
+        Engine->>Nodes: 8a. ConfigDiffEngine applies surgical reversal patch (<3s)
+    else All Health Gates Passed (Convergence Verified)
+        Note over Engine, EVEIaC: Phase B: Digital Twin Chaos & Failover Testing
+        Engine->>EVEIaC: 8b. POST /api/v1/projects/links/suspend (set_link_suspend, suspended=True)
+        Note over EVEIaC: EVE IaC isolates primary path (Hardware Cable Cut)
         Engine->>Nodes: 9. Inject synthetic high-frequency probe stream
         Engine->>Engine: 10. Measure convergence speed & failover packet loss
-        Engine->>EVEIaC: 11. set_link_suspend(link="L1", suspended=False) (Restore Link)
-        end
+        Engine->>EVEIaC: 11. POST /api/v1/projects/links/suspend (suspended=False, restore link)
         Engine->>Admin: 12. Emit comprehensive JSON + TXT audit report
     end
+```
+
+### 5.2 Orchestration Pipeline & Failover Decision Tree
+
+```mermaid
+flowchart TD
+    classDef gitStyle fill:#1e293b,stroke:#38bdf8,stroke-width:2px,color:#f0f9ff,font-size:15px,font-weight:bold;
+    classDef eveStyle fill:#1e1b4b,stroke:#818cf8,stroke-width:2px,color:#e0e7ff,font-size:15px,font-weight:bold;
+    classDef pnetStyle fill:#064e3b,stroke:#34d399,stroke-width:2px,color:#ecfdf5,font-size:15px,font-weight:bold;
+    classDef alertStyle fill:#7f1d1d,stroke:#f87171,stroke-width:2px,color:#fef2f2,font-size:15px,font-weight:bold;
+    classDef chaosStyle fill:#78350f,stroke:#fbbf24,stroke-width:2px,color:#fffbeb,font-size:15px,font-weight:bold;
+
+    Git["1. Git Repository<br/>(Topology YAML + Intent Contract)"]:::gitStyle
+    Boot["2. EVE IaC Reconciles & Boots Topology"]:::eveStyle
+    Discovery["3. PNetGimini Consoles Discovery<br/><code>POST /api/v1/projects/consoles</code>"]:::eveStyle
+    WaitReady["4. Boot Readiness Synchronization<br/><code>POST /api/v1/console/wait</code>"]:::eveStyle
+
+    Snapshot["5. Snapshot Baseline Running Config"]:::pnetStyle
+    PushCfg["6. High-Concurrency Asyncio Config Push"]:::pnetStyle
+    Telemetry["7. Fetch Telemetry & Assert Health Gates<br/>(Ping SLA / OSPF Full / BGP Prefixes)"]:::pnetStyle
+    Decision{"Health Gate<br/>Assertions Pass?"}:::pnetStyle
+
+    Rollback["8a. Tier 1 Surgical Reversal<br/><code>ConfigDiffEngine</code> (<3s)"]:::alertStyle
+    Chaos["8b. Phase B: Chaos Fault Injection<br/><code>POST /api/v1/projects/links/suspend</code>"]:::chaosStyle
+    Probe["9. Synthetic Probe Stream & FRR Convergence Timing"]:::chaosStyle
+    Restore["10. Safe Link Restoration & Audit Artifact Generation"]:::chaosStyle
+
+    Git --> Boot
+    Boot --> Discovery
+    Discovery --> WaitReady
+    WaitReady --> Snapshot
+    Snapshot --> PushCfg
+    PushCfg --> Telemetry
+    Telemetry --> Decision
+    Decision -->|Violated| Rollback
+    Decision -->|Passed| Chaos
+    Chaos --> Probe
+    Probe --> Restore
 ```
 
 ---
