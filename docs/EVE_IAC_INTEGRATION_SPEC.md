@@ -94,8 +94,15 @@ PNetGimini interacts with EVE IaC strictly through typed contracts exposed by th
 
 ### 3.1 Dynamic Inventory & Console Discovery
 
-* **EVE IaC Operation**: `list_project_consoles(lab)` / `GET /api/v1/projects/{lab}/consoles`
-* **Response Payload (`ConsoleRecord`)**:
+* **EVE IaC Operation**: `client.list_project_consoles(body: ListProjectConsolesRequest)`
+* **OpenAPI Route**: `POST /api/v1/projects/consoles` (`operationId: listProjectConsoles`)
+* **Request Payload**:
+  ```python
+  from eveiac import ListProjectConsolesRequest, pack_lab
+  packed = pack_lab("./lab_dc.unl")
+  result = client.list_project_consoles(ListProjectConsolesRequest(**packed.payload))
+  ```
+* **Response Payload (`ConsolesData` / `ConsoleRecord`)**:
   ```json
   {
     "consoles": [
@@ -114,38 +121,55 @@ PNetGimini interacts with EVE IaC strictly through typed contracts exposed by th
 
 ### 3.2 Boot Readiness Synchronization (Interaction as Code)
 
-* **EVE IaC Operation**: `wait_console(lab, node, pattern, timeout)` / `POST /api/v1/projects/{lab}/consoles/{node}/wait`
-* **Purpose**: Solves the cold-boot synchronization race condition. Virtual routers (e.g. Cisco IOL, QEMU CSR1000v) take several minutes to extract kernel images. PNetGimini delegates prompt detection to EVE IaC's server-side Go regex probe (`r"([>#]|<.+>|Press RETURN)"`) before dispatching workers.
-
-### 3.3 Dynamic Link Topology Discovery
-
-* **EVE IaC Operation**: `list_project_links(lab)` / `GET /api/v1/projects/{lab}/links`
-* **Response Payload (`LinkRecord`)**:
-  ```json
-  {
-    "links": [
-      {
-        "id": "link_12",
-        "src_node": "1",
-        "src_port": "e0/1",
-        "src_name": "Spine-01",
-        "dst_node": "2",
-        "dst_port": "e0/1",
-        "dst_name": "Leaf-01",
-        "status": "active"
-      }
-    ]
-  }
+* **EVE IaC Operation**: `client.wait_console(body: WaitConsoleRequest)`
+* **OpenAPI Route**: `POST /api/v1/console/wait` (`operationId: waitConsole`)
+* **Request Payload**:
+  ```python
+  from eveiac import WaitConsoleRequest
+  result = client.wait_console(WaitConsoleRequest(
+      lab="lab_dc.unl",
+      node="1",
+      pattern=r"([>#]|<.+>|Press RETURN)",
+      timeout_ms=300000
+  ))
   ```
+* **Purpose**: Solves the cold-boot synchronization race condition. Virtual routers (e.g. Cisco IOL, QEMU CSR1000v) take several minutes to extract kernel images. PNetGimini delegates prompt detection to EVE IaC's server-side Go regex probe before dispatching in-guest configuration workers.
+
+### 3.3 Dynamic Topology & Runtime State Inspection
+
+* **EVE IaC Operation**: `client.inspect_project(body: InspectProjectRequest)`
+* **OpenAPI Route**: `POST /api/v1/projects/inspect` (`operationId: inspectProject`)
+* **Purpose**: Observes live runtime topology, node execution states, and active link connections without mutating desired IaC state. Inspects runtime `source_suspend` and `destination_suspend` indicators.
 
 ### 3.4 Chaos & Fault Injection Primitives
 
 1. **Link Flap / Down**:
-   - `set_link_suspend(lab, link, suspended=True)`
-   - Simulates physical cable disconnection or optical link failure.
+   * **EVE IaC Operation**: `client.set_link_suspend(body: SetLinkSuspendRequest)`
+   * **OpenAPI Route**: `POST /api/v1/projects/links/suspend` (`operationId: setLinkSuspend`)
+   * **Invocation**:
+     ```python
+     from eveiac import SetLinkSuspendRequest
+     result = client.set_link_suspend(SetLinkSuspendRequest(
+         lab="lab_dc.unl",
+         match={"endpoints": [{"node": "Spine-01", "interface": "e0/1"}, {"node": "Leaf-01", "interface": "e0/1"}]},
+         suspended=True
+     ))
+     ```
+   * **Semantics**: Simulates physical cable disconnection or optical transceiver degradation directly on live links without altering persistent UNL files.
+
 2. **QoS / Packet Degradation**:
-   - `apply_link_quality(lab, link, delay=50, jitter=10, loss=2.5, bandwidth=100000)`
-   - Dynamically injects millisecond latency and packet drop via kernel Netem/tc.
+   * **EVE IaC Operation**: `client.apply_link_quality(body: ApplyLinkQualityRequest)`
+   * **OpenAPI Route**: `POST /api/v1/projects/links/quality` (`operationId: applyLinkQuality`)
+   * **Invocation**:
+     ```python
+     from eveiac import ApplyLinkQualityRequest
+     result = client.apply_link_quality(ApplyLinkQualityRequest(
+         lab="lab_dc.unl",
+         match={"endpoints": [{"node": "Spine-01", "interface": "e0/1"}, {"node": "Leaf-01", "interface": "e0/1"}]},
+         source_impairment={"delay": 50, "jitter": 10, "loss": 2.5, "bandwidth": 100000}
+     ))
+     ```
+   * **Semantics**: Dynamically applies Linux kernel Netem/tc impairments on live Ethernet bridges.
 
 ---
 
