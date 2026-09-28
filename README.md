@@ -265,6 +265,7 @@ Detailed architectural and procedural documentation is partitioned across subdir
 
 | Document | Scope & Contents |
 |---|---|
+| 📐 [**`docs/EVE_IAC_INTEGRATION_SPEC.md`**](docs/EVE_IAC_INTEGRATION_SPEC.md) | **EVE IaC Integration Specification**: Separation of concerns, two-plane operational model, dynamic console/link discovery, declarative quality gate schemas, and chaos convergence testing. |
 | 📖 [**`src/core/README.md`**](src/core/README.md) | **Core Engine Architecture**: Asyncio coroutine engine, diff-based precision rollback algorithms, multi-vendor adapter design (Cisco vs. Huawei), and self-healing lifecycle. |
 | 🧪 [**`tests/README.md`**](tests/README.md) | **Test Suite Guide**: Unit test breakdown, non-destructive mocking strategy, and testing command references. |
 | ⚙️ [**`configs/README.md`**](configs/README.md) | **Configuration & Snapshots**: `devices.yaml` syntax specification (`config`, `show`, `verify`), snapshot naming conventions, and recovery workflows. |
