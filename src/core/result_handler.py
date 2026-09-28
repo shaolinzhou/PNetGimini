@@ -2,10 +2,11 @@ import json
 import logging
 from pathlib import Path
 import datetime
+from ..utils.masking import mask_sensitive_data
 
 class ResultHandler:
     """
-    Handles command execution results and generates report files.
+    Handles command execution results and generates report files with credential desensitization.
     """
     def __init__(self, output_dir: Path):
         self.output_dir = output_dir
@@ -33,7 +34,7 @@ class ResultHandler:
                 "status": res.get("status", "UNKNOWN"),
                 "rollback_applied": res.get("rollback_applied", False),
                 "rollback_type": res.get("rollback_type"),
-                "error_message": res.get("error_message")
+                "error_message": mask_sensitive_data(res.get("error_message"))
             })
 
         output_file = self.output_dir / f"summary_report_{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}.json"
@@ -56,17 +57,17 @@ class ResultHandler:
                 if res.get('rollback_applied'):
                     f.write(f"Rollback Applied: Yes (Type: {res.get('rollback_type')})\n")
                 if res.get('error_message'):
-                    f.write(f"Error Message: {res['error_message']}\n")
+                    f.write(f"Error Message: {mask_sensitive_data(res['error_message'])}\n")
                 f.write("\n--- Command Execution Details ---\n\n")
 
                 for detail in res.get("details", []):
                     f.write(f"Category: {detail['category']}\n")
                     f.write(f"Status: {detail['status']}\n")
                     f.write("Commands Sent:\n")
-                    for cmd in detail["commands_sent"]:
-                        f.write(f"  - {cmd}\n")
+                    for cmd in detail.get("commands_sent", []):
+                        f.write(f"  - {mask_sensitive_data(cmd)}\n")
                     f.write("\nDevice Output:\n")
-                    f.write(detail["output"])
+                    f.write(mask_sensitive_data(detail.get("output", "")))
                     f.write("\n" + "-"*40 + "\n\n")
 
         self.logger.info(f"Generated consolidated TXT report: {output_file_txt}")

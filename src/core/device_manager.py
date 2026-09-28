@@ -33,11 +33,12 @@ class DeviceManager:
     def _create_connection_info(self) -> dict:
         """
         Creates the connection dictionary for Netmiko using vendor adapter mappings.
+        Supports password, passwordless telnet, SSH private key authentication, and enable secret.
         """
         enable_secret = getattr(self.device, "secret", self.device.password) or self.device.password
         netmiko_type = self.adapter.get_netmiko_device_type(self.device.device_type)
         
-        return {
+        conn_dict = {
             "device_type": netmiko_type,
             "host": self.device.ip,
             "port": self.device.port,
@@ -47,6 +48,15 @@ class DeviceManager:
             "timeout": 30,
             "global_delay_factor": 2,  # Increased delay factor for virtual lab stability
         }
+
+        # SSH Private Key authentication support
+        if getattr(self.device, "key_file", None):
+            conn_dict["use_keys"] = True
+            conn_dict["key_file"] = self.device.key_file
+            if getattr(self.device, "passphrase", None):
+                conn_dict["passphrase"] = self.device.passphrase
+
+        return conn_dict
 
     def deploy_commands(self) -> dict:
         """

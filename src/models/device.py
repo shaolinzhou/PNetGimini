@@ -3,14 +3,27 @@ from typing import Optional, List
 class Device:
     """
     Device data model representing a target network device.
+    Supports SSH password, Telnet passwordless, SSH private key authentication, and enable secret.
     """
-    def __init__(self, ip: str, port: int, username: str, password: str, device_type: str, secret: Optional[str] = None):
+    def __init__(
+        self,
+        ip: str,
+        port: int,
+        username: str = "",
+        password: str = "",
+        device_type: str = "",
+        secret: Optional[str] = None,
+        key_file: Optional[str] = None,
+        passphrase: Optional[str] = None
+    ):
         self.ip = ip
         self.port = port
-        self.username = username
-        self.password = password
+        self.username = username or ""
+        self.password = password or ""
         self.device_type = device_type
-        self.secret = secret if secret is not None else password
+        self.secret = secret if secret is not None else self.password
+        self.key_file = key_file
+        self.passphrase = passphrase
         self.commands: List = []
 
     def add_command(self, command_obj):
@@ -18,4 +31,5 @@ class Device:
         self.commands.append(command_obj)
 
     def __str__(self):
-        return f"{self.ip}:{self.port}:{self.username}:***:{self.device_type}"
+        auth_mode = "key" if self.key_file else "pwd"
+        return f"{self.ip}:{self.port}:{self.username}:***({auth_mode}):{self.device_type}"

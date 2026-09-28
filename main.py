@@ -52,11 +52,14 @@ def main():
     """
     args = parse_arguments()
 
+    # Load environment variables from .env if present
+    ConfigParser.load_dotenv()
+
     # Initialize necessary directories
     LOGS_DIR.mkdir(exist_ok=True)
     OUTPUTS_DIR.mkdir(exist_ok=True)
     
-    # Initialize logger
+    # Initialize logger (with integrated MaskingFilter for desensitization)
     setup_logger(LOGS_DIR)
     
     # Start the execution timer
