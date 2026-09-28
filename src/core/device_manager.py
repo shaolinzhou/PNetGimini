@@ -162,22 +162,12 @@ class DeviceManager:
                             self.logger.info(cmd_output)
 
                     elif category in ("verify", "check", "assert"):
-                        # Post-Check validation block: proactive verification
-                        output = ""
-                        for cmd in commands:
-                            cmd_output = net_connect.send_command(cmd, read_timeout=45)
-                            output += cmd_output + "\n"
-                            self.logger.info(cmd_output)
-                            
-                            # Detect common network failure patterns (Cisco and Huawei)
-                            lowered = cmd_output.lower()
-                            if "ping" in cmd.lower() and (
-                                "0.00% packet success" in lowered
-                                or "success rate is 0 percent" in lowered
-                                or "100.00% packet loss" in lowered
-                                or "100% packet loss" in lowered
-                            ):
-                                raise RuntimeError(f"Proactive Verification Failed: {cmd} reported 100% packet loss or 0% packet success.")
+                        # Declarative Health Gate & proactive verification (Phase 3 / v3.3)
+                        from src.core.health_gate import HealthGateEngine
+                        health_gate = HealthGateEngine(self.logger)
+                        gate_results = health_gate.verify_device(net_connect, commands)
+                        category_result["health_gate"] = gate_results
+                        output = f"Health Gate Passed: {gate_results['passed_assertions']}/{gate_results['total_assertions']} assertions satisfied."
 
                     else:
                         output = f"Unsupported command category '{category}'."

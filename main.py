@@ -114,6 +114,7 @@ def main():
         logging.info(f"Target Mode: Static YAML Inventory | File: '{args.config}'")
     logging.info("=" * 60)
 
+    connector = None
     try:
         if args.eve_lab:
             logging.info(f"Engaging EVE IaC Connector for lab project: '{args.eve_lab}'")
@@ -189,6 +190,16 @@ def main():
         handler = ResultHandler(current_outputs_dir)
         handler.generate_summary_report(results)
         handler.generate_consolidated_txt_report(results)
+
+        # Phase 3 (v3.3): If EVE IaC chaos tests are defined, execute digital twin chaos experiments
+        if args.eve_lab and connector and hasattr(connector, "chaos_tests") and connector.chaos_tests:
+            logging.info("=" * 60)
+            logging.info(f"Engaging ChaosOrchestrator for {len(connector.chaos_tests)} digital twin chaos experiment(s)...")
+            from src.plugins.chaos_orchestrator import ChaosOrchestrator
+            orchestrator = ChaosOrchestrator(connector)
+            chaos_results = orchestrator.run_suite(args.eve_lab, connector.chaos_tests)
+            logging.info(f"Chaos Experiments Complete: {len(chaos_results)} executed.")
+            logging.info("=" * 60)
         
         # Calculate final execution time
         end_time = time.time()

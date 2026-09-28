@@ -90,18 +90,18 @@ flowchart TD
         G["ResultHandler with MaskingFilter"]:::implemented
         H1["summary_report_{timestamp}.json"]:::implemented
         H2["deployment_report_{timestamp}.txt"]:::implemented
-        H3["Pre/Post TextFSM Health Gate & Chaos Telemetry"]:::planned
+        H3["HealthGateEngine & Chaos Telemetry"]:::implemented
 
         F6 --> G
         F8 --> G
         G --> H1
         G --> H2
-        F6 -.-> H3
+        F6 --> H3
     end
 ```
 
 > **Legend**:
-> - 🟩 **Solid Green**: **Currently Implemented & Production-Ready** (v3.2, 36/36 Tests Passing)
+> - 🟩 **Solid Green**: **Currently Implemented & Production-Ready** (v3.3, 52/52 Tests Passing)
 > - 🟨 **Solid Gold**: **Decision & Control Flow Gate** (Engine Selector / Syntax & Ping Verification)
 > - 🟦 **Dashed Blue**: **Planned EVE IaC & Digital Twin Integrations** (Roadmap Architecture)
 
@@ -121,18 +121,21 @@ PNetGimini/
 │   │   ├── config_diff.py      # Intelligent diff-based precision rollback engine
 │   │   ├── config_parser.py    # YAML parser + ${VAR:-default} env interpolation + .env
 │   │   ├── device_manager.py   # Connection lifecycle, pre-change snapshot, self-healing
+│   │   ├── health_gate.py      # Declarative quality gate: Ping SLA, OSPF/BGP metrics, CRC
 │   │   └── result_handler.py   # JSON/TXT deployment audit report generation
 │   ├── plugins/
 │   │   ├── __init__.py         # Plugins package
-│   │   └── eve_iac_connector.py # EVE IaC connector: dynamic discovery & wait_console probe
+│   │   ├── eve_iac_connector.py # EVE IaC connector: dynamic discovery & wait_console probe
+│   │   └── chaos_orchestrator.py # Digital twin chaos testing & convergence assertions
 │   └── utils/
 │       ├── logger.py           # RotatingFileHandler logging
 │       └── masking.py          # Real-time sensitive credential desensitization (MaskingFilter)
-├── tests/                      # Automated test suite (36 offline-safe unit & integration tests)
+├── tests/                      # Automated test suite (52 offline-safe unit & integration tests)
 │   ├── test_core.py            # Adapters, diff rollback, and async engine tests
 │   ├── test_full_pipeline.py   # End-to-end execution, syntax traps, and verification tests
 │   ├── test_v31_security.py    # Env expansion, credential masking, and SSH key tests
-│   └── test_v32_eve_iac_plugin.py # EVE IaC connector discovery, wait probe & intent binding tests
+│   ├── test_v32_eve_iac_plugin.py # EVE IaC connector discovery, wait probe & intent binding tests
+│   └── test_v33_health_gate.py # Declarative quality gate & digital twin chaos testing tests
 ├── configs/
 │   ├── devices.yaml            # Main device configuration inventory
 │   ├── latest_recovery.yaml    # Auto-generated disaster recovery template
@@ -368,6 +371,7 @@ devices:
 
 | Version | Changes |
 |---------|---------|
+| v3.3 | Declarative Health Gate & Chaos Testing: Added `HealthGateEngine` (Ping SLA, OSPF neighbor states/metrics, BGP prefixes, interface CRC, route next-hop), `ChaosOrchestrator` for EVE IaC fault injection (`set_link_suspend`, `apply_link_quality`), and expanded test suite (52/52 passing) |
 | v3.2 | EVE IaC Native SDK & Dynamic Topology Discovery: Added `EveIacConnector` supporting official `eveiac` SDK and REST OpenAPI fallback, dynamic inventory discovery (`list_project_consoles`), console boot readiness probe (`wait_console`), intent binding, multi-vendor auto-inference, offline simulation mode, and expanded test suite (36/36 passing) |
 | v3.1 | Enterprise Security & Credential Desensitization: Dynamic env interpolation (`${VAR:-default}`), automated `.env` loading, `MaskingFilter` for console/file logs and audit reports, SSH key authentication, passwordless console sessions, expanded test suite (25/25 passing) |
 | v3.0 | Major Milestone Release: Asyncio high-concurrency engine, Diff-based precision rollback, multi-vendor adapters (Cisco/Huawei), full integration test suite, structured snapshot lifecycle |
@@ -384,8 +388,10 @@ devices:
 
 ## Roadmap
 
-### Current (v3.2)
+### Current (v3.3)
 
+- ✅ Declarative Quality Gate Engine (`HealthGateEngine`): Ping SLA & latency, OSPF states & metrics, BGP prefix floors, interface CRC tracking
+- ✅ Digital Twin Chaos Orchestrator (`ChaosOrchestrator`): Dynamic link flap (`set_link_suspend`) and packet degradation (`apply_link_quality`)
 - ✅ Dynamic EVE IaC lab topology & console discovery (`EveIacConnector`, `list_project_consoles`)
 - ✅ Server-side console prompt readiness synchronization (`wait_console`)
 - ✅ Multi-vendor driver auto-inference from lab node metadata
@@ -399,17 +405,15 @@ devices:
 - ✅ SSH private key authentication & passwordless console support
 - ✅ Structured pre-change snapshot lifecycle (`configs/snapshots/`)
 - ✅ YAML-based configuration & reverse recovery tool
-- ✅ Automated offline unit & integration test suites (`tests/`, 36 passing tests)
+- ✅ Automated offline unit & integration test suites (`tests/`, 52 passing tests)
 - ✅ Dual-format audit reports (JSON + TXT)
 - ✅ Real-time terminal output
 - ✅ Network topology simulation support (Cisco Packet Tracer)
 
 ### Future Roadmap
 
-- **Pre/Post-Deployment Health Gate (v3.3)** — Automated synthetic route convergence, latency assertions, and BGP/OSPF neighbor state checks via TextFSM structured telemetry.
-- **Digital Twin Chaos & Convergence Testing (v3.3)** — Dynamic link flap (`set_link_suspend`) and packet degradation (`apply_link_quality`) assertions.
-- **Dual-Tier Resilience Handshake (v3.5)** — Intra-node surgical diff rollback coupled with EVE IaC lifecycle recovery fallback.
-- **GitOps CI/CD Automation (v4.0)** — Automated lab testing before production deployment via GitHub Actions / GitLab CI.
+- **Dual-Tier Resilience Handshake (v3.5)** — Intra-node surgical diff rollback coupled with EVE IaC lifecycle recovery fallback (`reconcile_project`).
+- **Complete GitOps Digital Twin Pipeline (v4.0)** — Automated lab testing before production deployment via GitHub Actions / GitLab CI.
 
 ## Contributing
 

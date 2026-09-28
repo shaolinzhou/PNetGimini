@@ -84,6 +84,7 @@ class EveIacConnector:
         if custom_type_mappings:
             self.type_mappings.update(custom_type_mappings)
 
+        self.chaos_tests: List[Dict[str, Any]] = []
         self.client = None
         self._initialize_client()
 
@@ -230,6 +231,138 @@ class EveIacConnector:
             logging.warning(f"Console wait probe failed for node {node} in lab {lab_id}: {e}")
             return False
 
+    def list_links(self, lab_id: str) -> List[Dict[str, Any]]:
+        """
+        List all virtual and physical topology links for a given project.
+        Maps to EVE IaC `list_project_links(lab)`.
+        """
+        if self.offline_mode:
+            return [
+                {
+                    "id": "link_12",
+                    "src_node": "1",
+                    "src_name": "Spine-01",
+                    "src_port": "e0/1",
+                    "dst_node": "2",
+                    "dst_name": "Leaf-01",
+                    "dst_port": "e0/1",
+                    "status": "active"
+                }
+            ]
+
+        # 1. Try official SDK
+        if self.client and hasattr(self.client, "list_project_links"):
+            try:
+                res = self.client.list_project_links(lab=lab_id)
+                if hasattr(res, "links"):
+                    return [getattr(l, "__dict__", dict(l)) for l in res.links]
+                elif isinstance(res, dict) and "links" in res:
+                    return res["links"]
+            except Exception as e:
+                logging.warning(f"Official SDK list_project_links failed ({e}); falling back to REST endpoint.")
+
+        # 2. REST API Fallback
+        links_url = f"{self.url}/api/v1/projects/{lab_id}/links"
+        headers = {"Accept": "application/json"}
+        if self.token:
+            headers["Authorization"] = f"Bearer {self.token}"
+
+        req = urllib.request.Request(links_url, headers=headers)
+        try:
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+                return data.get("links", [])
+        except Exception as e:
+            logging.error(f"Failed to query links from EVE IaC for lab '{lab_id}': {e}")
+            return []
+
+    def set_link_suspend(self, lab_id: str, link_id: str, suspended: bool = True) -> bool:
+        """
+        Suspend or resume a link (simulate physical cable disconnect / link flap).
+        Maps to EVE IaC `set_link_suspend(lab, link, suspended)`.
+        """
+        state_str = "SUSPENDED (CUT)" if suspended else "RESUMED (UP)"
+        if self.offline_mode:
+            logging.info(f"[Offline] Link '{link_id}' in lab '{lab_id}' set to {state_str}.")
+            return True
+
+        # 1. Try official SDK
+        if self.client and hasattr(self.client, "set_link_suspend"):
+            try:
+                self.client.set_link_suspend(lab=lab_id, link=link_id, suspended=suspended)
+                logging.info(f"Link '{link_id}' successfully set to {state_str} via EVE IaC SDK.")
+                return True
+            except Exception as e:
+                logging.warning(f"Official SDK set_link_suspend failed ({e}); falling back to REST call.")
+
+        # 2. REST API Fallback
+        suspend_url = f"{self.url}/api/v1/projects/{lab_id}/links/{link_id}/suspend"
+        payload = json.dumps({"suspended": suspended}).encode("utf-8")
+        headers = {"Content-Type": "application/json"}
+        if self.token:
+            headers["Authorization"] = f"Bearer {self.token}"
+
+        req = urllib.request.Request(suspend_url, data=payload, headers=headers)
+        try:
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                logging.info(f"Link '{link_id}' set to {state_str} (HTTP {resp.status}).")
+                return resp.status in (200, 204)
+        except Exception as e:
+            logging.error(f"Failed to set link suspend for '{link_id}' in lab '{lab_id}': {e}")
+            return False
+
+    def apply_link_quality(
+        self,
+        lab_id: str,
+        link_id: str,
+        delay_ms: int = 0,
+        jitter_ms: int = 0,
+        loss_pct: float = 0.0,
+        bandwidth_kbps: int = 0
+    ) -> bool:
+        """
+        Dynamically inject latency, jitter, packet loss, or bandwidth limits via Netem.
+        Maps to EVE IaC `apply_link_quality(...)`.
+        """
+        if self.offline_mode:
+            logging.info(
+                f"[Offline] Applied link quality to '{link_id}': delay={delay_ms}ms, jitter={jitter_ms}ms, "
+                f"loss={loss_pct}%, bw={bandwidth_kbps}kbps."
+            )
+            return True
+
+        # 1. Try official SDK
+        if self.client and hasattr(self.client, "apply_link_quality"):
+            try:
+                self.client.apply_link_quality(
+                    lab=lab_id, link=link_id, delay=delay_ms, jitter=jitter_ms, loss=loss_pct, bandwidth=bandwidth_kbps
+                )
+                logging.info(f"Link quality applied to '{link_id}' via EVE IaC SDK.")
+                return True
+            except Exception as e:
+                logging.warning(f"Official SDK apply_link_quality failed ({e}); falling back to REST call.")
+
+        # 2. REST API Fallback
+        quality_url = f"{self.url}/api/v1/projects/{lab_id}/links/{link_id}/quality"
+        payload = json.dumps({
+            "delay_ms": delay_ms,
+            "jitter_ms": jitter_ms,
+            "loss_pct": loss_pct,
+            "bandwidth_kbps": bandwidth_kbps
+        }).encode("utf-8")
+        headers = {"Content-Type": "application/json"}
+        if self.token:
+            headers["Authorization"] = f"Bearer {self.token}"
+
+        req = urllib.request.Request(quality_url, data=payload, headers=headers)
+        try:
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                logging.info(f"Link quality applied to '{link_id}' (HTTP {resp.status}).")
+                return resp.status in (200, 204)
+        except Exception as e:
+            logging.error(f"Failed to apply link quality for '{link_id}' in lab '{lab_id}': {e}")
+            return False
+
     def detect_device_type(self, node_name: str, protocol: str = "telnet") -> str:
         """
         Infer the Netmiko device_type based on node name and transport protocol.
@@ -340,13 +473,20 @@ class EveIacConnector:
                     if name in device_map:
                         self._attach_commands_to_device(device_map[name], item.get("commands", {}))
 
+            # Support top-level chaos_tests: [ {...}, {...} ]
+            if "chaos_tests" in data and isinstance(data["chaos_tests"], list):
+                self.chaos_tests.extend(data["chaos_tests"])
+                logging.info(f"Loaded {len(data['chaos_tests'])} global chaos test(s) from intent.")
+
             # Support format 2: { "R1_Spine": { "config": [...], "show": [...], "verify": [...] } }
             for key, val in data.items():
-                if key == "devices":
+                if key in ("devices", "chaos_tests"):
                     continue
                 k_lower = str(key).lower()
                 if k_lower in device_map and isinstance(val, dict):
                     self._attach_commands_to_device(device_map[k_lower], val)
+                    if "chaos_tests" in val and isinstance(val["chaos_tests"], list):
+                        self.chaos_tests.extend(val["chaos_tests"])
 
         except Exception as e:
             logging.error(f"Error binding intent from file '{file_path}': {e}")
