@@ -178,10 +178,10 @@ Edit `configs/devices.yaml` with your device configurations:
 
 ```yaml
 devices:
-  - ip: 10.48.80.40          # Management IP (e.g., EVE-NG host)
-    port: 30001               # Console port
-    username: admin
-    password: admin
+  - ip: ${EVE_HOST:-10.48.80.40}          # Management IP or environment variable
+    port: 30001                          # Console port
+    username: ${DEV_USER:-admin}
+    password: ${DEV_PASS:-admin}
     device_type: cisco_ios_telnet
     commands:
       config:
@@ -196,7 +196,7 @@ devices:
         - ping 192.168.1.254
 ```
 
-> **Security Warning**: Do not store plain-text production credentials in `devices.yaml`. This file is designed for lab/educational use. Integration with HashiCorp Vault and environment variable support is planned in our roadmap.
+> **Security Tip**: Avoid hardcoding plain-text production credentials. PNetGimini v3.1 natively supports dynamic environment variable interpolation (e.g., `${DEV_PASS:-admin}`) and automatic `.env` file loading. Sensitive credentials (passwords, secrets, keys, tokens) are automatically sanitized and redacted across all logs, JSON reports, and TXT audits via the built-in `MaskingFilter`.
 
 ### 3. Deploy Configurations
 
