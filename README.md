@@ -40,53 +40,102 @@ The system utilizes a highly optimized concurrency engine to orchestrate complex
 
 ```mermaid
 flowchart TD
-    A["main.py CLI: --engine, -c"] --> B["ConfigParser: Parse devices.yaml"]
-    B --> C{"Engine Selector"}
-    C -->|"async (Default)"| D1["AsyncDeploymentEngine: Coroutines + Semaphore"]
-    C -->|"thread"| D2["ThreadPoolExecutor: Worker Threads"]
-    D1 --> E["DeviceManager: Per-Device Orchestration"]
-    D2 --> E
-    E --> F1["1. Connect via Netmiko with Vendor Adapter"]
-    F1 --> F2["2. Disable Paging: terminal length 0 / screen-length 0"]
-    F2 --> F3["3. Archive Pre-change Snapshot to snapshots/"]
-    F3 --> F4["4. Execute Commands: config / show / verify"]
-    F4 --> F5{"Execution & Verify OK?"}
-    F5 -->|"Yes"| F6["Log SUCCESS -> CONFIGURED"]
-    F5 -->|"No"| F7["ConfigDiffEngine: Compute Minimal Reversal Patch"]
-    F7 --> F8["Apply Surgical Diff Reversal / Clean Restore"]
-    F6 --> G["ResultHandler"]
-    F8 --> G
-    G --> H1["summary_report_{timestamp}.json"]
-    G --> H2["deployment_report_{timestamp}.txt"]
+    %% Status Styling Classes
+    classDef implemented fill:#196f3d,stroke:#27ae60,stroke-width:2px,color:#ffffff;
+    classDef planned fill:#1f618d,stroke:#5499c7,stroke-width:2px,stroke-dasharray: 4 4,color:#ffffff;
+    classDef decision fill:#b7950b,stroke:#f1c40f,stroke-width:2px,color:#ffffff;
+
+    subgraph Stage1 ["1. Ingress & Inventory Discovery"]
+        A["main.py CLI"]:::implemented
+        B1["ConfigParser: devices.yaml + .env + ${VAR}"]:::implemented
+        B2["EveIacConnector: Dynamic list_project_consoles()"]:::planned
+        A --> B1
+        A -.->|"Planned: --eve-lab"| B2
+    end
+
+    subgraph Stage2 ["2. Scheduling & Readiness"]
+        W["EVE IaC: wait_console() Prompt Ready"]:::planned
+        C{"Engine Selector"}:::decision
+        D1["AsyncDeploymentEngine: Coroutines + Semaphore"]:::implemented
+        D2["ThreadPoolExecutor: Fallback Workers"]:::implemented
+        B1 --> C
+        B2 -.-> W
+        W -.-> C
+        C -->|"async (Default)"| D1
+        C -->|"thread"| D2
+    end
+
+    subgraph Stage3 ["3. Per-Device Provisioning & Self-Healing"]
+        E["DeviceManager: Connection Lifecycle"]:::implemented
+        D1 --> E
+        D2 --> E
+        F1["1. Connect: SSH Keys / Password / Telnet"]:::implemented
+        F2["2. Disable Paging: Cisco / Huawei Adapter"]:::implemented
+        F3["3. Capture Pre-change Snapshot (.conf)"]:::implemented
+        F4["4. Execute Block Pipeline: config / show / verify"]:::implemented
+        F5{"Syntax & Ping OK?"}:::decision
+        F6["Status: CONFIGURED (SUCCESS)"]:::implemented
+        F7["ConfigDiffEngine: Precision Reversal Patch"]:::implemented
+        F8["Apply Surgical Diff / Baseline Fallback"]:::implemented
+        F9["Escalate to EVE IaC VM Snapshot Revert"]:::planned
+
+        E --> F1 --> F2 --> F3 --> F4 --> F5
+        F5 -->|"Yes"| F6
+        F5 -->|"CLI Error / Verify Fail"| F7
+        F7 --> F8
+        F8 -.->|"If Node Panic"| F9
+    end
+
+    subgraph Stage4 ["4. Audit & Verification Output"]
+        G["ResultHandler with MaskingFilter"]:::implemented
+        H1["summary_report_{timestamp}.json"]:::implemented
+        H2["deployment_report_{timestamp}.txt"]:::implemented
+        H3["Pre/Post TextFSM Health Gate & Chaos Telemetry"]:::planned
+
+        F6 --> G
+        F8 --> G
+        G --> H1
+        G --> H2
+        F6 -.-> H3
+    end
 ```
+
+> **Legend / 图例说明**：
+> - 🟩 **Solid Green (实线绿色)**：**Currently Implemented & Production-Ready** (v3.1 Baseline, 25/25 Tests Passing)
+> - 🟨 **Solid Gold (实线金黄)**：**Decision & Control Flow Gate** (Engine Selector / Syntax & Ping Verification)
+> - 🟦 **Dashed Blue (虚线蓝色)**：**Planned EVE IaC & Digital Twin Integrations** (Roadmap Architecture)
 
 ## Architecture
 
 ```
 PNetGimini/
 ├── main.py                     # Entry point: CLI parsing (--engine, -c) + Async/Thread dispatch
+├── .env.example                # Environment configuration template
 ├── src/
 │   ├── models/
-│   │   ├── device.py           # Device model: IP, port, credentials, commands
+│   │   ├── device.py           # Device model: IP, port, credentials, SSH keys, commands
 │   │   └── command.py          # Command model: category (config/show/verify) + commands
 │   ├── core/
 │   │   ├── adapters/           # Multi-vendor driver adapters (Cisco, Huawei, Factory)
 │   │   ├── async_engine.py     # Asyncio coroutine deployment engine (high concurrency)
 │   │   ├── config_diff.py      # Intelligent diff-based precision rollback engine
-│   │   ├── config_parser.py    # YAML parser → Device/Command objects
+│   │   ├── config_parser.py    # YAML parser + ${VAR:-default} env interpolation + .env
 │   │   ├── device_manager.py   # Connection lifecycle, pre-change snapshot, self-healing
 │   │   └── result_handler.py   # JSON/TXT deployment audit report generation
 │   └── utils/
-│       └── logger.py           # RotatingFileHandler logging
-├── tests/                      # Automated test suite (offline-safe unit tests)
-│   └── test_core.py            # Adapters, diff rollback, and async engine tests
+│       ├── logger.py           # RotatingFileHandler logging
+│       └── masking.py          # Real-time sensitive credential desensitization (MaskingFilter)
+├── tests/                      # Automated test suite (25 offline-safe unit & integration tests)
+│   ├── test_core.py            # Adapters, diff rollback, and async engine tests
+│   ├── test_full_pipeline.py   # End-to-end execution, syntax traps, and verification tests
+│   └── test_v31_security.py    # Env expansion, credential masking, and SSH key tests
 ├── configs/
 │   ├── devices.yaml            # Main device configuration inventory
 │   ├── latest_recovery.yaml    # Auto-generated disaster recovery template
 │   ├── snapshots/              # Pre-change .conf snapshot archives
 │   └── devices_enetlab.pkt     # Cisco Packet Tracer lab topology
-├── logs/                       # System runtime logs (auto-rotated)
-├── outputs/                    # Deployment reports and audit trails
+├── logs/                       # System runtime logs (auto-rotated & credential-masked)
+├── outputs/                    # Deployment reports and audit trails (credential-masked)
 ├── config_to_yaml.py           # Reverse tool: snapshots/ → YAML recovery template
 └── requirements.txt            # Python dependencies (netmiko, pyyaml)
 ```
