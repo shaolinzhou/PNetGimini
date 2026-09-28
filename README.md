@@ -401,7 +401,7 @@ This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENS
 ## Acknowledgments
 
 - Built with [Netmiko](https://github.com/ktbyers/netmiko) for multi-vendor network device communication
-- Special thanks to Alain Degreffe ([EVE-NG](https://www.eve-ng.net/) / [EVE IaC](https://eve-iac.io/)) for architectural boundary design insights and the EVE IaC Python SDK
+- Special thanks to [Alain Degreffe](https://www.linkedin.com/in/alaindegreffe/) ([EVE-NG](https://www.eve-ng.net/) / [EVE IaC](https://eve-iac.io/)) for architectural boundary design insights and the EVE IaC Python SDK
 - Designed and tested with EVE-NG / PNETLab / Cisco Packet Tracer simulation environments
 
 ## Citation
