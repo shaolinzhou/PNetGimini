@@ -48,19 +48,19 @@ flowchart TD
     subgraph Stage1 ["1. Ingress & Inventory Discovery"]
         A["main.py CLI"]:::implemented
         B1["ConfigParser: devices.yaml + .env + ${VAR}"]:::implemented
-        B2["EveIacConnector: Dynamic list_project_consoles()"]:::planned
-        A --> B1
-        A -.->|"Planned: --eve-lab"| B2
+        B2["EveIacConnector: Dynamic list_project_consoles()"]:::implemented
+        A -->|"Static: devices.yaml"| B1
+        A -->|"Dynamic: --eve-lab"| B2
     end
 
     subgraph Stage2 ["2. Scheduling & Readiness"]
-        W["EVE IaC: wait_console() Prompt Ready"]:::planned
+        W["EVE IaC: wait_console() Prompt Ready"]:::implemented
         C{"Engine Selector"}:::decision
         D1["AsyncDeploymentEngine: Coroutines + Semaphore"]:::implemented
         D2["ThreadPoolExecutor: Fallback Workers"]:::implemented
         B1 --> C
-        B2 -.-> W
-        W -.-> C
+        B2 --> W
+        W --> C
         C -->|"async (Default)"| D1
         C -->|"thread"| D2
     end
@@ -101,7 +101,7 @@ flowchart TD
 ```
 
 > **Legend**:
-> - 🟩 **Solid Green**: **Currently Implemented & Production-Ready** (v3.1 Baseline, 25/25 Tests Passing)
+> - 🟩 **Solid Green**: **Currently Implemented & Production-Ready** (v3.2, 36/36 Tests Passing)
 > - 🟨 **Solid Gold**: **Decision & Control Flow Gate** (Engine Selector / Syntax & Ping Verification)
 > - 🟦 **Dashed Blue**: **Planned EVE IaC & Digital Twin Integrations** (Roadmap Architecture)
 
@@ -109,7 +109,7 @@ flowchart TD
 
 ```
 PNetGimini/
-├── main.py                     # Entry point: CLI parsing (--engine, -c) + Async/Thread dispatch
+├── main.py                     # Entry point: CLI parsing (--engine, -c, --eve-lab) + Dispatch
 ├── .env.example                # Environment configuration template
 ├── src/
 │   ├── models/
@@ -122,13 +122,17 @@ PNetGimini/
 │   │   ├── config_parser.py    # YAML parser + ${VAR:-default} env interpolation + .env
 │   │   ├── device_manager.py   # Connection lifecycle, pre-change snapshot, self-healing
 │   │   └── result_handler.py   # JSON/TXT deployment audit report generation
+│   ├── plugins/
+│   │   ├── __init__.py         # Plugins package
+│   │   └── eve_iac_connector.py # EVE IaC connector: dynamic discovery & wait_console probe
 │   └── utils/
 │       ├── logger.py           # RotatingFileHandler logging
 │       └── masking.py          # Real-time sensitive credential desensitization (MaskingFilter)
-├── tests/                      # Automated test suite (25 offline-safe unit & integration tests)
+├── tests/                      # Automated test suite (36 offline-safe unit & integration tests)
 │   ├── test_core.py            # Adapters, diff rollback, and async engine tests
 │   ├── test_full_pipeline.py   # End-to-end execution, syntax traps, and verification tests
-│   └── test_v31_security.py    # Env expansion, credential masking, and SSH key tests
+│   ├── test_v31_security.py    # Env expansion, credential masking, and SSH key tests
+│   └── test_v32_eve_iac_plugin.py # EVE IaC connector discovery, wait probe & intent binding tests
 ├── configs/
 │   ├── devices.yaml            # Main device configuration inventory
 │   ├── latest_recovery.yaml    # Auto-generated disaster recovery template
@@ -214,12 +218,24 @@ python main.py configs/custom_config.yaml -c 15
 
 # 4. Classic ThreadPool Mode (for benchmark comparison or legacy environments)
 python main.py --engine thread -c 5
+
+# 5. Dynamic EVE IaC Lab Discovery: Auto-discover active nodes & consoles
+python main.py --eve-lab dc_spine_leaf.unl --intent configs/intent/
+
+# 6. EVE IaC Deployment with Custom Endpoint and Token
+python main.py --eve-lab my_topology.unl --eve-url http://10.10.100.1:8080 --eve-token $EVE_IAC_TOKEN
 ```
 
 CLI Parameters:
 | Option | Default | Description |
 |---|---|---|
-| `config` | `configs/devices.yaml` | Positional path to the target YAML inventory |
+| `config` | `configs/devices.yaml` | Positional path to static YAML inventory (ignored if `--eve-lab` is set) |
+| `--eve-lab` | `None` | EVE IaC lab ID/name for dynamic console discovery (e.g. `dc_spine_leaf.unl`) |
+| `--eve-url` | `EVE_IAC_URL` / `http://localhost:8080` | EVE IaC API server URL |
+| `--eve-token` | `EVE_IAC_TOKEN` | EVE IaC Bearer Token for API authentication |
+| `--intent` | `None` | Path to intent YAML file or directory of per-node `.cfg` snippets |
+| `--no-wait-console` | `False` | Disable console prompt readiness synchronization probe |
+| `--offline` | `False` | Enable offline simulation mode without connecting to live EVE IaC server |
 | `--engine` | `async` | Execution engine: `async` (asyncio coroutines) or `thread` (`ThreadPoolExecutor`) |
 | `-c, --concurrency` | `10` | Maximum number of concurrent device connections |
 
@@ -351,6 +367,7 @@ devices:
 
 | Version | Changes |
 |---------|---------|
+| v3.2 | EVE IaC Native SDK & Dynamic Topology Discovery: Added `EveIacConnector` supporting official `eveiac` SDK and REST OpenAPI fallback, dynamic inventory discovery (`list_project_consoles`), console boot readiness probe (`wait_console`), intent binding, multi-vendor auto-inference, offline simulation mode, and expanded test suite (36/36 passing) |
 | v3.1 | Enterprise Security & Credential Desensitization: Dynamic env interpolation (`${VAR:-default}`), automated `.env` loading, `MaskingFilter` for console/file logs and audit reports, SSH key authentication, passwordless console sessions, expanded test suite (25/25 passing) |
 | v3.0 | Major Milestone Release: Asyncio high-concurrency engine, Diff-based precision rollback, multi-vendor adapters (Cisco/Huawei), full integration test suite, structured snapshot lifecycle |
 | v2.1 | Pre-release architecture upgrade (Asyncio engine & diff rollback development) |
@@ -366,9 +383,12 @@ devices:
 
 ## Roadmap
 
-### Current (v3.1)
+### Current (v3.2)
 
-- ✅ YAML-based configuration & reverse recovery tool
+- ✅ Dynamic EVE IaC lab topology & console discovery (`EveIacConnector`, `list_project_consoles`)
+- ✅ Server-side console prompt readiness synchronization (`wait_console`)
+- ✅ Multi-vendor driver auto-inference from lab node metadata
+- ✅ Configuration intent binding (YAML intent file or directory of per-node `.cfg` snippets)
 - ✅ Dynamic environment variable interpolation (`${VAR:-default}`) & `.env` configuration
 - ✅ High-concurrency Asyncio coroutine engine (`AsyncDeploymentEngine`)
 - ✅ Multi-threaded fallback deployment (`ThreadPoolExecutor`)
@@ -377,14 +397,18 @@ devices:
 - ✅ Automated credential masking (`MaskingFilter`) across logs, JSON reports, and TXT audits
 - ✅ SSH private key authentication & passwordless console support
 - ✅ Structured pre-change snapshot lifecycle (`configs/snapshots/`)
-- ✅ Automated offline unit & integration test suites (`tests/`, 25 passing tests)
+- ✅ YAML-based configuration & reverse recovery tool
+- ✅ Automated offline unit & integration test suites (`tests/`, 36 passing tests)
 - ✅ Dual-format audit reports (JSON + TXT)
 - ✅ Real-time terminal output
 - ✅ Network topology simulation support (Cisco Packet Tracer)
 
 ### Future Roadmap
 
-- **EVE IaC Integration** — Integration with [EVE IaC](https://eve-iac.io/) via the official Python SDK (`eveiac`) to operate as a Day-1 and Day-2 operational automation provider for virtual labs and network digital twins.
+- **Pre/Post-Deployment Health Gate (v3.3)** — Automated synthetic route convergence, latency assertions, and BGP/OSPF neighbor state checks via TextFSM structured telemetry.
+- **Digital Twin Chaos & Convergence Testing (v3.3)** — Dynamic link flap (`set_link_suspend`) and packet degradation (`apply_link_quality`) assertions.
+- **Dual-Tier Resilience Handshake (v3.5)** — Intra-node surgical diff rollback coupled with EVE IaC lifecycle recovery fallback.
+- **GitOps CI/CD Automation (v4.0)** — Automated lab testing before production deployment via GitHub Actions / GitLab CI.
 
 ## Contributing
 

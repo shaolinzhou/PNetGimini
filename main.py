@@ -14,6 +14,7 @@ from src.core.device_manager import DeviceManager
 from src.core.async_engine import AsyncDeploymentEngine
 from src.core.result_handler import ResultHandler
 from src.utils.logger import setup_logger
+from src.plugins.eve_iac_connector import EveIacConnector
 
 # Project directory definitions
 BASE_DIR = Path(__file__).resolve().parent
@@ -29,7 +30,7 @@ def parse_arguments():
         "config",
         nargs="?",
         default=str(BASE_DIR / "configs" / "devices.yaml"),
-        help="Path to devices.yaml configuration file"
+        help="Path to devices.yaml configuration file (ignored if --eve-lab is provided)"
     )
     parser.add_argument(
         "--engine",
@@ -42,6 +43,44 @@ def parse_arguments():
         type=int,
         default=10,
         help="Maximum concurrent device provisioning connections"
+    )
+    parser.add_argument(
+        "--eve-lab",
+        dest="eve_lab",
+        default=None,
+        help="EVE IaC lab ID/name for dynamic inventory discovery (e.g., dc_spine_leaf.unl)"
+    )
+    parser.add_argument(
+        "--eve-url",
+        dest="eve_url",
+        default=None,
+        help="EVE IaC API server URL (overrides EVE_IAC_URL env variable)"
+    )
+    parser.add_argument(
+        "--eve-token",
+        dest="eve_token",
+        default=None,
+        help="EVE IaC Bearer Token (overrides EVE_IAC_TOKEN env variable)"
+    )
+    parser.add_argument(
+        "--intent",
+        dest="intent",
+        default=None,
+        help="Path to intent configuration file or directory to pair with discovered lab devices"
+    )
+    parser.add_argument(
+        "--no-wait-console",
+        dest="wait_console",
+        action="store_false",
+        default=True,
+        help="Disable waiting for console prompt readiness synchronization"
+    )
+    parser.add_argument(
+        "--offline",
+        dest="offline",
+        action="store_true",
+        default=False,
+        help="Enable offline simulation mode for EVE IaC connector without connecting to real server"
     )
     return parser.parse_args()
 
@@ -69,21 +108,42 @@ def main():
     logging.info("=" * 60)
     logging.info(f"PNetGimini System Started at: {start_timestamp}")
     logging.info(f"Active Engine: {args.engine.upper()} | Concurrency limit: {args.concurrency}")
+    if args.eve_lab:
+        logging.info(f"Target Mode: EVE IaC Dynamic Discovery | Lab: '{args.eve_lab}'")
+    else:
+        logging.info(f"Target Mode: Static YAML Inventory | File: '{args.config}'")
     logging.info("=" * 60)
 
-    config_path = Path(args.config)
-    if not config_path.exists():
-        logging.error(f"Critical Error: Configuration file '{config_path}' not found.")
-        sys.exit(1)
-
     try:
-        # Use the config file's directory for output snapshots/reports
-        current_outputs_dir = config_path.parent
-        
-        logging.info(f"Parsing configuration: {config_path}")
-        parser = ConfigParser(config_path)
-        devices_config = parser.parse()
-        logging.info(f"Successfully identified {len(devices_config)} target devices.")
+        if args.eve_lab:
+            logging.info(f"Engaging EVE IaC Connector for lab project: '{args.eve_lab}'")
+            connector = EveIacConnector(
+                url=args.eve_url,
+                token=args.eve_token,
+                offline_mode=args.offline
+            )
+            current_outputs_dir = (
+                Path(args.intent).parent if args.intent and Path(args.intent).is_file() else OUTPUTS_DIR
+            )
+            devices_config = connector.load_lab_devices(
+                lab_id=args.eve_lab,
+                intent_path=args.intent,
+                wait_readiness=args.wait_console
+            )
+            logging.info(f"EVE IaC Discovery: Successfully prepared {len(devices_config)} devices for deployment.")
+        else:
+            config_path = Path(args.config)
+            if not config_path.exists():
+                logging.error(f"Critical Error: Configuration file '{config_path}' not found.")
+                sys.exit(1)
+
+            # Use the config file's directory for output snapshots/reports
+            current_outputs_dir = config_path.parent
+            
+            logging.info(f"Parsing configuration: {config_path}")
+            parser = ConfigParser(config_path)
+            devices_config = parser.parse()
+            logging.info(f"Successfully identified {len(devices_config)} target devices.")
 
         if not devices_config:
             logging.warning("No valid devices found to process. Exiting.")
