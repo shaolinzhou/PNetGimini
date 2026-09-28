@@ -11,6 +11,13 @@ from ..models.device import Device
 from .adapters.factory import AdapterFactory
 from .config_diff import ConfigDiffEngine
 
+CLI_ERROR_PATTERNS = [
+    re.compile(r"%\s*(invalid input|incomplete command|ambiguous command|bad IP address|authorization failed)", re.IGNORECASE),
+    re.compile(r"Error:\s*(unrecognized command|wrong parameter|incomplete command|ambiguous command|too many parameters|invalid parameter)", re.IGNORECASE),
+    re.compile(r"%\s*error", re.IGNORECASE),
+    re.compile(r"syntax error", re.IGNORECASE),
+]
+
 class DeviceManager:
     """
     Manages device connections, command deployment, and intelligent diff-based recovery.
@@ -27,7 +34,7 @@ class DeviceManager:
         """
         Creates the connection dictionary for Netmiko using vendor adapter mappings.
         """
-        enable_secret = self.device.password
+        enable_secret = getattr(self.device, "secret", self.device.password) or self.device.password
         netmiko_type = self.adapter.get_netmiko_device_type(self.device.device_type)
         
         return {
@@ -76,12 +83,15 @@ class DeviceManager:
             # Optimization: Disable paging using vendor-specific command
             paging_cmd = self.adapter.get_disable_paging_command()
             self.logger.info(f"Disabling pagination with: '{paging_cmd}'")
-            net_connect.send_command(paging_cmd)
+            try:
+                net_connect.send_command(paging_cmd)
+            except Exception as paging_err:
+                self.logger.warning(f"Could not disable pagination with '{paging_cmd}': {paging_err}")
             
             # Step 2: Save current running-config for baseline snapshot
             snapshot_cmd = self.adapter.get_snapshot_command()
             self.logger.info(f"Capturing pre-change running configuration snapshot via: '{snapshot_cmd}'")
-            initial_config = net_connect.send_command(snapshot_cmd)
+            initial_config = net_connect.send_command(snapshot_cmd, read_timeout=90)
             
             # Ensure snapshots directory exists
             self.snapshots_dir.mkdir(parents=True, exist_ok=True)
@@ -122,6 +132,14 @@ class DeviceManager:
                         )
                         self.logger.info(output)
 
+                        # Inspect output for silent CLI syntax / execution errors
+                        for pattern in CLI_ERROR_PATTERNS:
+                            match = pattern.search(output)
+                            if match:
+                                err_msg = f"CLI configuration error detected on {self.device.ip}: '{match.group(0)}'"
+                                self.logger.error(err_msg)
+                                raise RuntimeError(err_msg)
+
                     elif category == "show":
                         output = ""
                         for cmd in commands:
@@ -141,10 +159,15 @@ class DeviceManager:
                             output += cmd_output + "\n"
                             self.logger.info(cmd_output)
                             
-                            # Detect common network failure patterns
+                            # Detect common network failure patterns (Cisco and Huawei)
                             lowered = cmd_output.lower()
-                            if "ping" in cmd.lower() and ("0.00% packet success" in lowered or "success rate is 0 percent" in lowered):
-                                raise RuntimeError(f"Proactive Verification Failed: {cmd} reported 0% packet success.")
+                            if "ping" in cmd.lower() and (
+                                "0.00% packet success" in lowered
+                                or "success rate is 0 percent" in lowered
+                                or "100.00% packet loss" in lowered
+                                or "100% packet loss" in lowered
+                            ):
+                                raise RuntimeError(f"Proactive Verification Failed: {cmd} reported 100% packet loss or 0% packet success.")
 
                     else:
                         output = f"Unsupported command category '{category}'."
@@ -174,11 +197,13 @@ class DeviceManager:
             result["status"] = "ERROR"
             result["error_message"] = str(e)
             
-            # Step 4: Intelligent Diff-based Rollback Mechanism
             if net_connect and initial_config:
                 try:
                     self.logger.warning(f"Deployment failed on {self.device.ip}. Computing rollback strategy...")
-                    net_connect.send_command(self.adapter.get_disable_paging_command())
+                    try:
+                        net_connect.send_command(self.adapter.get_disable_paging_command())
+                    except Exception as rb_paging_err:
+                        self.logger.debug(f"Paging command skipped during rollback: {rb_paging_err}")
                     
                     # Compute minimal diff-based reversal patch
                     reversal_plan = ConfigDiffEngine.compute_reversion_plan(

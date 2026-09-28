@@ -80,12 +80,12 @@ class HuaweiAdapter(BaseAdapter):
             if child_str in baseline_set:
                 continue
 
-            if child_str.lower().startswith("undo "):
-                reversal_cmds.append(child_str[5:].strip())
+            if child_str.lower().startswith("undo shutdown"):
+                reversal_cmds.append("shutdown")
             elif child_str.lower().startswith("shutdown"):
                 reversal_cmds.append("undo shutdown")
-            elif child_str.lower().startswith("undo shutdown"):
-                reversal_cmds.append("shutdown")
+            elif child_str.lower().startswith("undo "):
+                reversal_cmds.append(child_str[5:].strip())
             elif child_str.lower().startswith("ip address "):
                 baseline_ip = None
                 for b in baseline_set:

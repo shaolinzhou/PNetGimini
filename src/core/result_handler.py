@@ -26,10 +26,13 @@ class ResultHandler:
         }
 
         for res in results:
-            summary["summary"][res["status"].lower()] += 1
+            status_key = res.get("status", "unknown").lower()
+            summary["summary"][status_key] = summary["summary"].get(status_key, 0) + 1
             summary["device_results"].append({
-                "device": res["device"],
-                "status": res["status"],
+                "device": res.get("device", "unknown"),
+                "status": res.get("status", "UNKNOWN"),
+                "rollback_applied": res.get("rollback_applied", False),
+                "rollback_type": res.get("rollback_type"),
                 "error_message": res.get("error_message")
             })
 
@@ -48,13 +51,15 @@ class ResultHandler:
             f.write(f"--- Network Automation Deployment Report ({datetime.datetime.now()}) ---\n\n")
 
             for i, res in enumerate(results):
-                f.write(f"### Device {i+1} Report: {res['device']} ###\n")
-                f.write(f"Status: {res['status']}\n")
+                f.write(f"### Device {i+1} Report: {res.get('device', 'unknown')} ###\n")
+                f.write(f"Status: {res.get('status', 'UNKNOWN')}\n")
+                if res.get('rollback_applied'):
+                    f.write(f"Rollback Applied: Yes (Type: {res.get('rollback_type')})\n")
                 if res.get('error_message'):
                     f.write(f"Error Message: {res['error_message']}\n")
                 f.write("\n--- Command Execution Details ---\n\n")
 
-                for detail in res["details"]:
+                for detail in res.get("details", []):
                     f.write(f"Category: {detail['category']}\n")
                     f.write(f"Status: {detail['status']}\n")
                     f.write("Commands Sent:\n")

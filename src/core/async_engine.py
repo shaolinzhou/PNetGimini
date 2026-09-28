@@ -70,5 +70,17 @@ class AsyncDeploymentEngine:
             for i, device in enumerate(self.devices)
         ]
 
-        results = await asyncio.gather(*tasks, return_exceptions=False)
-        return list(results)
+        raw_results = await asyncio.gather(*tasks, return_exceptions=True)
+        results = []
+        for i, res in enumerate(raw_results):
+            if isinstance(res, Exception):
+                dev = self.devices[i] if i < len(self.devices) else "unknown"
+                results.append({
+                    "device": str(dev),
+                    "status": "ERROR",
+                    "details": [],
+                    "error_message": f"Async task execution failed: {res}"
+                })
+            else:
+                results.append(res)
+        return results

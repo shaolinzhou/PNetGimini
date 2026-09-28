@@ -153,6 +153,62 @@ class TestDeviceManagerExecution(unittest.TestCase):
         self.assertTrue(result["rollback_applied"])
         self.assertEqual(result["rollback_type"], "DIFF_BASED")
 
+    @patch("src.core.device_manager.ConnectHandler")
+    def test_silent_syntax_error_triggers_diff_rollback(self, mock_connect):
+        mock_handler = MagicMock()
+        mock_connect.return_value = mock_handler
+        mock_handler.send_command.return_value = "hostname R1\n"
+        
+        # Simulate Netmiko returning output containing silent CLI syntax error without raising exception
+        mock_handler.send_config_set.side_effect = [
+            "% Invalid input detected at '^' marker.",
+            "Rollback OK"
+        ]
+
+        self.device.add_command(Command("config", ["interface e0/0", "typo_command"]))
+
+        mgr = DeviceManager(self.device, self.output_dir)
+        result = mgr.deploy_commands()
+
+        self.assertEqual(result["status"], "ERROR")
+        self.assertTrue(result["rollback_applied"])
+        self.assertEqual(result["rollback_type"], "DIFF_BASED")
+        self.assertIn("CLI configuration error detected", result["error_message"])
+
+    @patch("src.core.device_manager.ConnectHandler")
+    def test_proactive_verification_failure_huawei_ping(self, mock_connect):
+        mock_handler = MagicMock()
+        mock_connect.return_value = mock_handler
+        mock_handler.send_command.side_effect = [
+            "terminal length 0",
+            "hostname R1\n", # snapshot
+            "Ping statistics: 5 packet(s) transmitted, 0 packet(s) received, 100.00% packet loss\n", # verify ping
+            "terminal length 0" # during rollback
+        ]
+        mock_handler.send_config_set.return_value = "Rollback OK"
+
+        self.device.add_command(Command("verify", ["ping -c 5 192.168.10.1"]))
+
+        mgr = DeviceManager(self.device, self.output_dir)
+        result = mgr.deploy_commands()
+
+        self.assertEqual(result["status"], "ERROR")
+        self.assertIn("Proactive Verification Failed", result["error_message"])
+
+    def test_device_secret_configuration(self):
+        dev_with_secret = Device("10.0.0.1", 22, "admin", "login_pass", "cisco_ios_ssh", secret="enable_secret")
+        self.assertEqual(dev_with_secret.secret, "enable_secret")
+        mgr = DeviceManager(dev_with_secret, self.output_dir)
+        conn_info = mgr._create_connection_info()
+        self.assertEqual(conn_info["secret"], "enable_secret")
+        self.assertEqual(conn_info["password"], "login_pass")
+
+        dev_without_secret = Device("10.0.0.1", 22, "admin", "login_pass", "cisco_ios_ssh")
+        self.assertEqual(dev_without_secret.secret, "login_pass")
+        mgr2 = DeviceManager(dev_without_secret, self.output_dir)
+        conn_info2 = mgr2._create_connection_info()
+        self.assertEqual(conn_info2["secret"], "login_pass")
+
 class TestConfigToYamlTool(unittest.TestCase):
     def test_parse_filename_info(self):
         valid_name = "192.168.1.100_30001_snapshot_20260908120000.conf"

@@ -34,11 +34,13 @@ class ConfigParser:
                 password = device_data.get('password')
                 device_type = device_data.get('device_type')
 
+                secret = device_data.get('secret')
+
                 if not all([ip, port, username, password, device_type]):
                     self.logger.warning(f"Incomplete device specification, skipping: {device_data}")
                     continue
 
-                device = Device(ip, port, username, password, device_type)
+                device = Device(ip, port, username, password, device_type, secret=secret)
 
                 # Iterate through command categories and commands
                 commands_data = device_data.get('commands', {})
