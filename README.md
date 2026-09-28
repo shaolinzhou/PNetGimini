@@ -27,11 +27,13 @@ The system utilizes a highly optimized concurrency engine to orchestrate complex
 - **Multi-Vendor Driver Adapters** — Decoupled adapter layer (`AdapterFactory`, `CiscoAdapter`, `HuaweiAdapter`) for pagination, snapshots, and command negations
 - **YAML-based Configuration** — Structured device inventory and command definitions
 - **Structured Snapshot Lifecycle** — Automatic pre-change snapshot archival into `snapshots/` subdirectories
-- **Dual-format Reports** — Machine-readable JSON + human-readable TXT deployment audits
+- **Dual-format Reports** — Machine-readable JSON + human-readable TXT deployment audits with automatic credential masking
+- **Enterprise Security & Desensitization (v3.1)** — Dynamic environment variable interpolation (`${VAR:-default}`), automated `.env` loading, and real-time credential redaction (`MaskingFilter`) across all logs and audit reports
+- **Flexible Authentication** — Support for SSH passwords, SSH private keys (with passphrases), enable secrets, and passwordless console sessions (EVE-NG / PNETLab)
 - **Reverse Engineering Tool** — Automatically extracts configuration from `.conf` snapshots to reconstruct YAML recovery templates
 - **Project-level Isolation** — Configs, logs, outputs scoped to project directory
 - **Real-time Terminal Output** — Live command execution feedback
-- **Logging System** — RotatingFileHandler for automatic log management
+- **Logging System** — RotatingFileHandler for automatic log management with integrated credential masking
 - **Network Topology Support** — Cisco Packet Tracer topology for lab simulation
 
 ### Deployment Flow
@@ -300,6 +302,7 @@ devices:
 
 | Version | Changes |
 |---------|---------|
+| v3.1 | Enterprise Security & Credential Desensitization: Dynamic env interpolation (`${VAR:-default}`), automated `.env` loading, `MaskingFilter` for console/file logs and audit reports, SSH key authentication, passwordless console sessions, expanded test suite (25/25 passing) |
 | v3.0 | Major Milestone Release: Asyncio high-concurrency engine, Diff-based precision rollback, multi-vendor adapters (Cisco/Huawei), full integration test suite, structured snapshot lifecycle |
 | v2.1 | Pre-release architecture upgrade (Asyncio engine & diff rollback development) |
 | v2.0.1 | Zenodo integration, citation metadata (CITATION.cff, .zenodo.json), documentation enhancements |
@@ -314,25 +317,35 @@ devices:
 
 ## Roadmap
 
-### Current (v3.0)
+### Current (v3.1)
 
 - ✅ YAML-based configuration & reverse recovery tool
+- ✅ Dynamic environment variable interpolation (`${VAR:-default}`) & `.env` configuration
 - ✅ High-concurrency Asyncio coroutine engine (`AsyncDeploymentEngine`)
 - ✅ Multi-threaded fallback deployment (`ThreadPoolExecutor`)
 - ✅ Intelligent diff-based precision rollback (`ConfigDiffEngine`)
 - ✅ Multi-vendor driver adapters (`CiscoAdapter`, `HuaweiAdapter`)
+- ✅ Automated credential masking (`MaskingFilter`) across logs, JSON reports, and TXT audits
+- ✅ SSH private key authentication & passwordless console support
 - ✅ Structured pre-change snapshot lifecycle (`configs/snapshots/`)
-- ✅ Automated offline unit & integration test suites (`tests/`)
+- ✅ Automated offline unit & integration test suites (`tests/`, 25 passing tests)
 - ✅ Dual-format audit reports (JSON + TXT)
 - ✅ Real-time terminal output
 - ✅ Network topology simulation support (Cisco Packet Tracer)
-### Future Roadmap
 
-- **Dynamic Cluster Concurrency** — Dynamically adjust Semaphore windows based on device health metrics and latency telemetry
-- **gNMI/NETCONF Model-Driven Protocols** — Supplement CLI with YANG/gNMI streaming telemetry and state validation
-- **CMDB & Inventory Integration** — NetBox and ServiceNow REST API synchronization for automated topology mapping
-- **Pre/Post-Deployment Verification** — Automated synthetic route convergence, latency assertions, and BGP/OSPF neighbor state checks
-- **HashiCorp Vault Integration** — Dynamic, short-lived privileged credential retrieval via Vault Secret Engine
+### Future Roadmap & EVE IaC Integration
+
+PNetGimini is architected to operate within modern Network Infrastructure as Code (IaC) and network digital twin ecosystems. In alignment with **EVE IaC**'s strict separation of concerns (*"Git owns intent, EVE IaC plans and reconciles, EVE-NG executes, Automation tools operate the lab"*), PNetGimini is positioned as a first-class Day-1 and Day-2 operational automation provider for EVE IaC:
+
+- **Official EVE IaC Python SDK Integration** (`eveiac`) — Standardized integration mapping operational requirements directly to the [EVE IaC Python SDK](https://eve-iac.io/developers/python/api/):
+  - **Dynamic Lab Inventory Discovery** (`list_project_consoles`) — Automatically discover active target nodes, console hosts, Telnet/SSH ports, and platform types directly from running labs without static YAML definitions.
+  - **Console Prompt Readiness Synchronization** (`wait_console`) — Server-side regex prompt detection to eliminate boot-time race conditions and Netmiko timeouts during QEMU/IOL node initialization.
+  - **Digital Twin Chaos & Convergence Testing** (`set_link_suspend`, `apply_link_quality`) — Dynamically inject link flaps, delay, and packet degradation to rigorously test OSPF/BGP failover and route convergence speed.
+  - **Dual-Tier Resilience Handshake** — Intra-node surgical diff rollback for quick self-healing coupled with infrastructure-level lifecycle recovery fallback.
+- **Pre/Post-Deployment Health Gate** — Automated synthetic route convergence, latency assertions, and BGP/OSPF neighbor state checks via TextFSM structured telemetry.
+- **Multi-Vendor Expansion** — Native driver adapters for H3C Comware and Arista EOS (session-config).
+- **Model-Driven Automation** — NETCONF/YANG Candidate Datastore transactions and gNMI streaming telemetry.
+- **GitOps CI/CD Automation** — Seamless integration with GitHub Actions / GitLab CI for automated lab testing before production deployment.
 
 ## Contributing
 
@@ -349,6 +362,7 @@ This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENS
 ## Acknowledgments
 
 - Built with [Netmiko](https://github.com/ktbyers/netmiko) for multi-vendor network device communication
+- Special thanks to Alain Degreffe ([EVE-NG](https://www.eve-ng.net/) / [EVE IaC](https://eve-iac.io/)) for architectural boundary design insights and the EVE IaC Python SDK
 - Designed and tested with EVE-NG / PNETLab / Cisco Packet Tracer simulation environments
 
 ## Citation
