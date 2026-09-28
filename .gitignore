@@ -61,3 +61,15 @@ configs/*
 
 # PRV (Patent) directory - exclude all files
 PRV/*
+
+# MCP & Code Analysis artifacts (excluded from sync)
+.tracegraph/
+.tracegraph*
+.tracegraph_cache/
+graphify-out/
+graphify-cache/
+.arch_guard/
+.archguard/
+*.sarif
+mcp_output/
+mcp_reports/
