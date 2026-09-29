@@ -220,7 +220,7 @@ Spine-01:
       - min_total_neighbors: 2   # Node must maintain at least 2 active neighbors
       - route: 10.200.0.0/24
         expected_metric: 20      # Assert calculated OSPF metric matches policy
-        expected_path_type: E2   # O / O IA / O E1 / O E2
+        expected_path_type: E2   # One of: O, O IA, O E1, O E2
 
     bgp:
       - peer_ip: 192.168.100.2
