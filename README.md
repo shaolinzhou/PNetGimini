@@ -223,17 +223,17 @@ python main.py configs/custom_config.yaml -c 15
 python main.py --engine thread -c 5
 
 # 5. Dynamic EVE IaC Lab Discovery: Auto-discover active nodes & consoles
-python main.py --eve-lab dc_spine_leaf.unl --intent configs/intent/
+python main.py --eve-lab spine-leaf --intent configs/intent/
 
 # 6. EVE IaC Deployment with Custom Endpoint and Token
-python main.py --eve-lab my_topology.unl --eve-url http://10.10.100.1:8080 --eve-token $EVE_IAC_TOKEN
+python main.py --eve-lab spine-leaf --eve-url http://10.10.100.1:8080 --eve-token $EVE_IAC_TOKEN
 ```
 
 CLI Parameters:
 | Option | Default | Description |
 |---|---|---|
 | `config` | `configs/devices.yaml` | Positional path to static YAML inventory (ignored if `--eve-lab` is set) |
-| `--eve-lab` | `None` | EVE IaC lab ID/name for dynamic console discovery (e.g. `dc_spine_leaf.unl`) |
+| `--eve-lab` | `None` | EVE IaC logical lab ID for dynamic topology discovery (e.g. `spine-leaf`) |
 | `--eve-url` | `EVE_IAC_URL` / `http://localhost:8080` | EVE IaC API server URL |
 | `--eve-token` | `EVE_IAC_TOKEN` | EVE IaC Bearer Token for API authentication |
 | `--intent` | `None` | Path to intent YAML file or directory of per-node `.cfg` snippets |
