@@ -1,6 +1,6 @@
 # PNetGimini & EVE IaC Architectural Integration Specification
 
-**Document Version**: 1.1.0  
+**Document Version**: 1.2.0 (Technical Review Alignment with Alain Degreffe)  
 **Status**: Approved Architecture Design Document (ADD)  
 **Target Milestone**: PNetGimini v3.1 – v4.0 (v3.1–v3.3 DELIVERED, v3.5–v4.0 PLANNED)  
 **Classification**: Technical Design Specification & Protocol Contract  
@@ -90,36 +90,56 @@ The collaboration between EVE IaC and PNetGimini functions as a **two-plane syne
 
 ## 3. EVE IaC API & Environmental Primitives Mapping
 
-PNetGimini interacts with EVE IaC strictly through typed contracts exposed by the official Python SDK (`eveiac`) and OpenAPI REST endpoints:
+PNetGimini interacts with EVE IaC strictly through typed contracts exposed by the official Python SDK (`eveiac`), standard OOB tooling, and OpenAPI REST endpoints.
 
-### 3.1 Dynamic Inventory & Console Discovery
+### 3.1 Out-of-Band (OOB) Inventory & Management Ingestion (The Golden Path)
 
+Out-of-band SSH is the official, supported path for Ansible, Netmiko, PNetGimini, and any external operational engine. PNetGimini does **not** rely on raw Telnet sockets or host-port guessing via `list_project_consoles`, and strictly avoids inferring vendor device types from human-facing hostnames (such as `Spine-01`).
+
+#### 1. Lifecycle Preparation Sequence
+The standard preparation workflow establishes an authenticated, isolated out-of-band management overlay before guest configuration begins:
+```bash
+# 1. Start out-of-band management proxy daemon
+eve-iac oob start ./IaC/sample
+
+# 2. Generate target-specific inventory
+eve-iac inventory generate ./IaC/sample --target netmiko
+eve-iac inventory generate ./IaC/sample --target ansible
+```
+Programmatic applications can invoke the identical exporter directly via the Python SDK:
+```python
+from eveiac.oob.inventory import render_project
+inventory_output = render_project(sample_dir="./IaC/sample", target="netmiko")
+```
+> [!NOTE]
+> `inventory generate` reads `topology.yml` and the exporter catalogue. It does not start nodes and does not call the agent. If `oob start` has not written `ssh_config`, generation fails deterministically with `oob_not_prepared`.
+
+#### 2. Inventory Wire Schema & Connection Model
+* **Host Key**: The OOB alias, ordered strictly by stable IaC node key (`n_1`, `n_2`, `n_10`).
+* **SSH User**: `eve-oob`.
+* **Session Transport**: Netmiko establishes connections using `ssh_config_file` and sets `host` to the OOB alias (leveraging a Paramiko `ProxyCommand` under the hood).
+* **Netmiko Device Type**: `terminal_server` on every single host, because OOB connects directly to the node console session stream.
+* **Security Redaction**: The inventory file never exposes `session_token`, private keys, agent passwords, or raw unproxied `ansible_host`.
+
+#### 3. Deterministic Driver Ingestion via `automation_profile`
+Driver selection is derived strictly from template metadata rather than inferred from arbitrary node display names. Since EVE-NG 7.2.0-18, each node template declares an `automation_profile`:
+* **Profile Identifiers**: Short canonical IDs (`ios`, `iosxr`, `nxos`, `asa`, `eos`, `junos`, `vyos`, `routeros`, `os10`, `exos`, `voss`, etc.).
+* **Default Fallback**: Missing or unknown values default to `generic`.
+* **Ansible Mapping**: Maps directly to `ansible_network_os` (e.g., `cisco.ios.ios`, `arista.eos.eos`, `junipernetworks.junos.junos`, `ansible.netcommon.default`).
+* **PNetGimini Driver Binding**: PNetGimini binds its in-guest parser and adapter directly to the discovered `automation_profile` (or `ansible_network_os`), preserving `generic` for unprofiled devices.
+
+#### 4. Diagnostic Console Discovery (`list_project_consoles`)
+When out-of-band SSH is unavailable or during deep hypervisor diagnostics, PNetGimini can inspect raw console allocations:
 * **EVE IaC Operation**: `client.list_project_consoles(body: ListProjectConsolesRequest)`
 * **OpenAPI Route**: `POST /api/v1/projects/consoles` (`operationId: listProjectConsoles`)
 * **Request Payload**:
   ```python
-  from eveiac import ListProjectConsolesRequest, pack_lab
-  packed = pack_lab("./lab_dc.unl")
-  result = client.list_project_consoles(ListProjectConsolesRequest(**packed.payload))
+  from eveiac import ListProjectConsolesRequest
+  result = client.list_project_consoles(ListProjectConsolesRequest(lab="spine-leaf"))
   ```
-* **Response Payload (`ConsolesData` / `ConsoleRecord`)**:
-  ```json
-  {
-    "consoles": [
-      {
-        "node": "1",
-        "name": "Spine-01",
-        "status": "running",
-        "protocol": "telnet",
-        "host": "10.10.100.20",
-        "port": 32769
-      }
-    ]
-  }
-  ```
-* **PNetGimini Ingestion**: Automatically transforms `ConsoleRecord` into a [`Device`](file:///D:/OneDrive/2025/Alain/pythonprogram/PnetGimini/src/models/device.py) instance. Automatically infers `device_type` (`cisco_ios_telnet`, `huawei_vrp_telnet`, `arista_eos_telnet`) based on node naming metadata.
+* **Identity Semantics**: The `lab` parameter is a logical lab ID (`spine-leaf`), never a filesystem path and never a `.unl` file. Source of truth in Git is `topology.yml`. Nodes are addressed via stable keys (`n_1`).
 
-### 3.2 Boot Readiness Synchronization (Interaction as Code)
+### 3.2 Event Probe & Console Synchronization (`wait_console`)
 
 * **EVE IaC Operation**: `client.wait_console(body: WaitConsoleRequest)`
 * **OpenAPI Route**: `POST /api/v1/console/wait` (`operationId: waitConsole`)
@@ -127,19 +147,24 @@ PNetGimini interacts with EVE IaC strictly through typed contracts exposed by th
   ```python
   from eveiac import WaitConsoleRequest
   result = client.wait_console(WaitConsoleRequest(
-      lab="lab_dc.unl",
-      node="1",
+      lab="spine-leaf",
+      node="n_1",
       pattern=r"([>#]|<.+>|Press RETURN)",
       timeout_ms=300000
   ))
   ```
-* **Purpose**: Solves the cold-boot synchronization race condition. Virtual routers (e.g. Cisco IOL, QEMU CSR1000v) take several minutes to extract kernel images. PNetGimini delegates prompt detection to EVE IaC's server-side Go regex probe before dispatching in-guest configuration workers.
+* **Execution Semantics**: `wait_console` is an **event probe**. It watches hub history and live output on stable IaC node key `n_1` for an event the caller *already expects* matching a Go regexp pattern (with `timeout_ms` capped at 600,000 ms). It is **not** a blanket cold-boot gate meaning "prompt is up, push the whole config"; cold-boot readiness and initialization sequence are managed independently through the OOB lifecycle.
 
-### 3.3 Dynamic Topology & Runtime State Inspection
+### 3.3 Dynamic Topology & Runtime State Inspection (`inspect_project`)
 
 * **EVE IaC Operation**: `client.inspect_project(body: InspectProjectRequest)`
 * **OpenAPI Route**: `POST /api/v1/projects/inspect` (`operationId: inspectProject`)
-* **Purpose**: Observes live runtime topology, node execution states, and active link connections without mutating desired IaC state. Inspects runtime `source_suspend` and `destination_suspend` indicators.
+* **Request Payload**:
+  ```python
+  from eveiac import InspectProjectRequest
+  result = client.inspect_project(InspectProjectRequest(lab="spine-leaf"))
+  ```
+* **Execution Semantics**: Observes live runtime topology, execution states, and active link connections without mutating desired IaC state (`topology.yml`). Inspects runtime `source_suspend` and `destination_suspend` indicators.
 
 ### 3.4 Chaos & Fault Injection Primitives
 
@@ -150,12 +175,15 @@ PNetGimini interacts with EVE IaC strictly through typed contracts exposed by th
      ```python
      from eveiac import SetLinkSuspendRequest
      result = client.set_link_suspend(SetLinkSuspendRequest(
-         lab="lab_dc.unl",
-         match={"endpoints": [{"node": "Spine-01", "interface": "e0/1"}, {"node": "Leaf-01", "interface": "e0/1"}]},
+         lab="spine-leaf",
+         match={"endpoints": [
+             {"node": "n_1", "interface": "e0/1"},
+             {"node": "n_2", "interface": "e0/1"}
+         ]},
          suspended=True
      ))
      ```
-   * **Semantics**: Simulates physical cable disconnection or optical transceiver degradation directly on live links without altering persistent UNL files.
+   * **Semantics**: `match.endpoints` takes **exactly two public endpoints**, where `endpoints[0]` is the source. Simulates physical cable disconnects directly on live links. This operation is purely live and ephemeral; it is never written to YAML and never persisted to UNL.
 
 2. **QoS / Packet Degradation**:
    * **EVE IaC Operation**: `client.apply_link_quality(body: ApplyLinkQualityRequest)`
@@ -164,12 +192,16 @@ PNetGimini interacts with EVE IaC strictly through typed contracts exposed by th
      ```python
      from eveiac import ApplyLinkQualityRequest
      result = client.apply_link_quality(ApplyLinkQualityRequest(
-         lab="lab_dc.unl",
-         match={"endpoints": [{"node": "Spine-01", "interface": "e0/1"}, {"node": "Leaf-01", "interface": "e0/1"}]},
-         source_impairment={"delay": 50, "jitter": 10, "loss": 2.5, "bandwidth": 100000}
+         lab="spine-leaf",
+         match={"endpoints": [
+             {"node": "n_1", "interface": "e0/1"},
+             {"node": "n_2", "interface": "e0/1"}
+         ]},
+         source_impairment={"delay": 50, "jitter": 10, "loss": 2, "bandwidth": 100000},
+         save=False
      ))
      ```
-   * **Semantics**: Dynamically applies Linux kernel Netem/tc impairments on live Ethernet bridges.
+   * **Semantics**: Injects kernel Netem impairments. Metrics (`delay`, `jitter`, `loss`, `bandwidth`) are strictly **integers** (`loss` is integer percentage, e.g. `2`). The `save` flag specifies persistence: omitted or `False` applies live NETEM only without mutating UNL; `save=True` persists into UNL when the session is admin and the lab is unlocked. Neither path rewrites `topology.yml`.
 
 ---
 
@@ -276,30 +308,31 @@ sequenceDiagram
     participant Engine as PNetGimini Engine
     participant Nodes as Virtual Lab Nodes (QEMU/IOL)
 
-    Admin->>EVEIaC: 1. Push Desired Topology (YAML) -> Reconcile & Boot
-    Engine->>EVEIaC: 2. POST /api/v1/projects/consoles (list_project_consoles)
-    EVEIaC-->>Engine: Returns live node endpoints (host, port, protocol)
-    Engine->>EVEIaC: 3. POST /api/v1/console/wait (wait_console prompt ready)
-    EVEIaC-->>Engine: Console prompt ready confirmation
+    Admin->>EVEIaC: 1. Push Desired Topology (topology.yml) -> Reconcile & Boot
+    Engine->>EVEIaC: 2. Start OOB & Generate Inventory (oob start & inventory generate --target netmiko)
+    EVEIaC-->>Engine: Emits OOB SSH inventory (alias: n_1, device_type: terminal_server)
+    Engine->>Nodes: 3. Establish OOB SSH sessions (driver bound from automation_profile)
+    Engine->>EVEIaC: 4. Optional event probe (wait_console on n_1 for expected transition)
+    EVEIaC-->>Engine: Probe matched confirmation
     
     Note over Engine, Nodes: Phase A: In-Guest Provisioning & Declarative Health Gate
-    Engine->>Nodes: 4. Capture baseline running snapshot (.conf)
-    Engine->>Nodes: 5. High-concurrency Asyncio config push
-    Engine->>Nodes: 6. Execute "show" telemetry commands
-    Engine->>Engine: 7. TextFSM parse & assert OSPF / BGP / Ping SLA
+    Engine->>Nodes: 5. Capture baseline running snapshot (.conf)
+    Engine->>Nodes: 6. High-concurrency Asyncio config push
+    Engine->>Nodes: 7. Execute "show" telemetry commands
+    Engine->>Engine: 8. TextFSM parse & assert OSPF / BGP / Ping SLA
     
     alt Assertion Failure Detected (Gate Violated)
-        Engine->>Nodes: 8a. ConfigDiffEngine applies surgical reversal patch (<3s)
-        Engine->>Nodes: 8a-2. Re-verify baseline state after rollback
-        Engine->>Admin: 8a-3. Emit rollback audit report (diff applied, gate re-check result)
+        Engine->>Nodes: 9a. ConfigDiffEngine applies surgical reversal patch (<3s)
+        Engine->>Nodes: 9a-2. Re-verify baseline state after rollback
+        Engine->>Admin: 9a-3. Emit rollback audit report (diff applied, gate re-check result)
     else All Health Gates Passed (Convergence Verified)
         Note over Engine, EVEIaC: Phase B: Digital Twin Chaos & Failover Testing
-        Engine->>EVEIaC: 8b. POST /api/v1/projects/links/suspend (set_link_suspend, suspended=True)
+        Engine->>EVEIaC: 9b. POST /api/v1/projects/links/suspend (endpoints=[n_1:e0/1, n_2:e0/1], suspended=True)
         Note over EVEIaC: EVE IaC isolates primary path (Hardware Cable Cut)
-        Engine->>Nodes: 9. Inject synthetic high-frequency probe stream
-        Engine->>Engine: 10. Measure convergence speed & failover packet loss
-        Engine->>EVEIaC: 11. POST /api/v1/projects/links/suspend (suspended=False, restore link)
-        Engine->>Admin: 12. Emit comprehensive JSON + TXT audit report
+        Engine->>Nodes: 10. Inject synthetic high-frequency probe stream
+        Engine->>Engine: 11. Measure convergence speed & failover packet loss
+        Engine->>EVEIaC: 12. POST /api/v1/projects/links/suspend (suspended=False, restore link)
+        Engine->>Admin: 13. Emit comprehensive JSON + TXT audit report
     end
 ```
 
@@ -313,10 +346,10 @@ flowchart TD
     classDef alertStyle fill:#7f1d1d,stroke:#f87171,stroke-width:2px,color:#fef2f2,font-size:15px,font-weight:bold;
     classDef chaosStyle fill:#78350f,stroke:#fbbf24,stroke-width:2px,color:#fffbeb,font-size:15px,font-weight:bold;
 
-    Git["1. Git Repository<br/>(Topology YAML + Intent Contract)"]:::gitStyle
+    Git["1. Git Repository<br/>(topology.yml + Intent Contract)"]:::gitStyle
     Boot["2. EVE IaC Reconciles & Boots Topology"]:::eveStyle
-    Discovery["3. PNetGimini Consoles Discovery<br/><code>POST /api/v1/projects/consoles</code>"]:::eveStyle
-    WaitReady["4. Boot Readiness Synchronization<br/><code>POST /api/v1/console/wait</code>"]:::eveStyle
+    Discovery["3. OOB Inventory Generation<br/><code>oob start & inventory generate --target netmiko</code>"]:::eveStyle
+    WaitReady["4. OOB SSH Session Establishment<br/>(driver bound from automation_profile)"]:::eveStyle
 
     Snapshot["5. Snapshot Baseline Running Config"]:::pnetStyle
     PushCfg["6. High-Concurrency Asyncio Config Push"]:::pnetStyle
@@ -345,7 +378,24 @@ flowchart TD
 
 ## 6. Dual-Tier Disaster Recovery & Self-Healing Protocol
 
-To ensure system resilience across both configuration syntax errors and operating system crashes, PNetGimini implements a **dual-tier self-healing escalation hierarchy**:
+To ensure system resilience across both configuration syntax errors and operating system crashes, PNetGimini establishes a **dual-tier self-healing escalation hierarchy**:
+
+### 6.1 Architectural Tiering Model
+
+1. **Tier 1: Surgical In-Guest CLI Rollback (PNetGimini Native Engine)**
+   * **Trigger**: CLI syntax errors, incomplete command commit, or violated `HealthGateEngine` assertions.
+   * **Mechanism**: `ConfigDiffEngine` computes inverted negative syntax (`no router ospf 100`, `no ip address ...`) against the baseline running configuration snapshot.
+   * **Latency & Impact**: Restores clean operational state in `<3s` without VM reboots or link flaps, preserving unrelated session states.
+
+2. **Tier 2: Infrastructure Lifecycle Escalation (Design Intention & Conceptual Recovery)**
+   * **Trigger**: Kernel panic, unrecoverable CLI deadlock, authentication loss, or Tier-1 retry exhaustion (>3 failed rollback attempts).
+   * **Architectural Boundaries (Clarified by Alain Degreffe)**:
+     * In EVE IaC, `reconcile_project(direction='to_eve', confirm=True)` is **directional and lab-wide**. It evaluates and applies the comprehensive lab plan against `topology.yml`.
+     * It does **not** accept a single node identifier and does **not** re-instantiate a VM from base image simply because a guest CLI became unresponsive.
+     * In-guest startup-config activation is managed through an explicit `stop -> wipe -> start` lifecycle sequence.
+   * **PNetGimini Tier-2 Operational Model**:
+     * **Node-Level Configuration Wipe & Reset**: For isolated guest deadlocks, PNetGimini signals the hypervisor control plane to trigger node stop, wipe, and restart with the golden baseline configuration.
+     * **Lab-Wide Desired State Reconciliation**: For persistent drift or cascading topology corruption, PNetGimini escalates to full lab reconciliation (`client.reconcile_project(direction='to_eve', confirm=True)`).
 
 ```mermaid
 graph TD
@@ -353,31 +403,34 @@ graph TD
 
     Evaluation -->|"CLI Syntax Error / Failed Health Gate"| Tier1["Tier 1: Surgical CLI Rollback (PNetGimini)"]
     Tier1 --> Calc["ConfigDiffEngine Computes Inverted CLI Diff"]
-    Calc --> Apply["Apply Negative Syntax (e.g., 'no router ospf 100')"]
+    Apply["Apply Negative Syntax (e.g., 'no router ospf 100')"]
+    Calc --> Apply
     Apply --> Success1{"Diff Rollback OK?"}
-    Success1 -->|"Yes"| Resolved["Node Restored to Clean Baseline in <3s"]
-    Success1 -->|"No / CLI Frozen"| Escalate["Escalate to Tier 2"]
+    Success1 -->|"Yes"| Resolved["Node Restored to Baseline in <3s"]
+    Success1 -->|"No / CLI Deadlock"| Escalate["Escalate to Tier 2"]
 
-    Evaluation -->|"Kernel Panic / Console Unresponsive / Auth Deadlock"| Escalate
-    Escalate --> Tier2["Tier 2: Infrastructure Reconcile (EVE IaC)"]
-    Tier2 --> API["Call client.reconcile_project(action='to_eve', confirm=True, node=X)"]
-    API --> VMRebuild["EVE-NG Re-instantiates Node VM from Base Image"]
-    VMRebuild --> ConsoleSync["wait_console() Re-synchronization"]
-    ConsoleSync --> Reapply["Re-provision Baseline Snapshot"]
+    Evaluation -->|"Kernel Panic / Console Hang / Exhaustion"| Escalate
+    Escalate --> Tier2["Tier 2: Infrastructure Lifecycle Escalation (Design Intention)"]
+    Tier2 --> Choice{"Recovery Scope"}
+    Choice -->|"Single Node Reset"| NodeReset["Node Stop -> Wipe -> Start (Re-apply Baseline)"]
+    Choice -->|"Topology Drift"| LabReconcile["client.reconcile_project(direction='to_eve', confirm=True)"]
+    NodeReset --> ConsoleSync["Event Probe / OOB Re-synchronization"]
+    LabReconcile --> ConsoleSync
+    ConsoleSync --> Reapply["Verify Golden State Recovery"]
 ```
 
 ---
 
 ## 7. Implementation & Traceability Roadmap
 
-> **Document Version Note**: This specification (v1.0.0) covers the PNetGimini v3.1–v4.0 roadmap. All modules marked DELIVERED are fully implemented, unit-tested, and available in the project repository.
+> **Document Version Note**: This specification (v1.2.0) covers the PNetGimini v3.1–v4.0 roadmap aligned with Alain Degreffe's technical review. All modules marked DELIVERED are fully implemented, unit-tested, and available in the project repository.
 
 | Release | Focus Area | EVE IaC API Contract | Architecture Deliverables | Status |
 | :---: | :--- | :--- | :--- | :---: |
 | **v3.1** | **Enterprise Security & Desensitization** | `LoginRequest`, Token Injection | `MaskingFilter` credential redaction, `${VAR:-default}` env expansion, SSH key auth, 25 unit tests | **DELIVERED ✅** |
 | **v3.2** | **Dynamic Topology & Console Discovery** | `list_project_consoles`, `wait_console` | `EveIacConnector` plugin, automatic vendor driver detection, intent binding, 36 unit tests | **DELIVERED ✅** |
 | **v3.3** | **Declarative Health Gate & Chaos Testing** | `set_link_suspend`, `apply_link_quality` | `HealthGateEngine`, `ChaosOrchestrator`, OSPF/BGP/Ping SLA assertions, 52 unit tests | **DELIVERED ✅** |
-| **v3.5** | **Dual-Tier Self-Healing Escalation** | `reconcile_project` | Fallback escalation from CLI diff rollback to EVE IaC infrastructure VM recreation | **PLANNED ⏳** |
+| **v3.5** | **Dual-Tier Self-Healing Escalation** | `reconcile_project`, Node Lifecycle | Fallback escalation from CLI diff rollback (Tier 1) to node wipe/reset and lab-wide reconciliation (Tier 2) | **PLANNED ⏳** |
 | **v4.0** | **Complete GitOps Digital Twin Pipeline** | Full REST/SDK OpenAPI Lifecycle | GitHub Actions / GitLab CI standardized workflow templates | **PLANNED ⏳** |
 
 ---
